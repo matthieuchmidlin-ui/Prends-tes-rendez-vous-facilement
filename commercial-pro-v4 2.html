@@ -549,21 +549,21 @@ select.fsel {
   bottom: 0; left: 0; right: 0;
   background: var(--white);
   border-top: 1px solid var(--border);
-  padding: 8px 0 calc(8px + var(--sab));
+  padding: 6px 0 calc(6px + var(--sab));
   z-index: 200;
   box-shadow: 0 -1px 12px rgba(0,0,0,.08);
 }
 .tab-bar-inner { display: flex; justify-content: space-around; }
 .tab-item {
   display: flex; flex-direction: column; align-items: center;
-  gap: 3px; padding: 4px 12px; cursor: pointer;
+  gap: 2px; padding: 3px 6px; cursor: pointer;
   color: var(--ink3); font-size: 10px; font-weight: 600;
   border: none; background: none; -webkit-appearance: none;
-  transition: color .15s; min-width: 56px;
+  transition: color .15s; min-width: 44px; flex: 1;
 }
 .tab-item.active { color: var(--acc); }
-.tab-item .tab-ico { font-size: 22px; line-height: 1; }
-.tab-item .tab-lbl { font-size: 10px; }
+.tab-item .tab-ico { font-size: 20px; line-height: 1; }
+.tab-item .tab-lbl { font-size: 9px; }
 
 /* ─── EMPTY ─── */
 .empty { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 20px; color: var(--ink3); gap: 8px; }
@@ -590,8 +590,8 @@ select.fsel {
 @media (max-width: 640px) {
   .sidebar { display: none; }
   .tab-bar { display: block; }
-  main { padding-bottom: calc(80px + var(--sab)); }
-  .toast-wrap { bottom: calc(80px + var(--sab)); }
+  main { padding-bottom: calc(72px + var(--sab)); }
+  .toast-wrap { bottom: calc(76px + var(--sab)); }
   .kpi-row { grid-template-columns: 1fr 1fr; }
   .cg { grid-template-columns: 1fr; }
   .fgrid2 { grid-template-columns: 1fr; }
@@ -646,7 +646,7 @@ select.fsel {
       <div class="ph">
         <div><div class="ph-title" id="fold-title">Prospects</div><div class="ph-sub" id="fold-sub">—</div></div>
         <div class="ph-actions">
-          <button class="btn bg bsm" onclick="navTo('import')">📂 CSV</button>
+          <button class="btn bp bsm" style="background:var(--green);box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navTo('import')">📂 Importer CSV</button>
           <button class="btn bp bsm" onclick="openAddCo(null)">+ Ajouter</button>
         </div>
       </div>
@@ -654,9 +654,9 @@ select.fsel {
         <div class="srch"><span class="srch-ico">🔍</span><input id="p-srch" placeholder="Rechercher…" oninput="renderProspects()"></div>
         <select class="fsel" id="p-filt" onchange="renderProspects()">
           <option value="">Tous</option>
-          <option value="hot">🔥</option>
-          <option value="warm">🌤</option>
-          <option value="cold">❄️</option>
+          <option value="hot">🔥 Chaud</option>
+          <option value="warm">🌤 Tiède</option>
+          <option value="cold">❄️ Froid</option>
         </select>
       </div>
       <div class="cg" id="prospect-grid"></div>
@@ -812,10 +812,13 @@ Cordialement,
       <span class="tab-ico">📅</span><span class="tab-lbl">RDV</span>
     </button>
     <button class="tab-item" data-view="import" onclick="tabNav(this)">
-      <span class="tab-ico">📂</span><span class="tab-lbl">Import</span>
+      <span class="tab-ico">📂</span><span class="tab-lbl">CSV</span>
     </button>
     <button class="tab-item" data-view="ai" onclick="tabNav(this)">
       <span class="tab-ico">✦</span><span class="tab-lbl">IA</span>
+    </button>
+    <button class="tab-item" data-view="emails" onclick="tabNav(this)">
+      <span class="tab-ico">✉</span><span class="tab-lbl">Mails</span>
     </button>
   </div>
 </div>
@@ -988,10 +991,15 @@ function switchView(v) {
   updateHdr();
 }
 function navTo(v) {
-  var el = document.querySelector('.ni[data-view='+v+']');
-  if(el) nav(el);
-  var tel = document.querySelector('.tab-item[data-view='+v+']');
-  if(tel) { document.querySelectorAll('.tab-item').forEach(function(t){t.classList.remove('active')}); tel.classList.add('active'); }
+  // Update sidebar active state
+  document.querySelectorAll('.ni').forEach(function(n){
+    n.classList.toggle('active', n.dataset.view === v);
+  });
+  // Update tab bar active state
+  document.querySelectorAll('.tab-item').forEach(function(t){
+    t.classList.toggle('active', t.dataset.view === v);
+  });
+  // Switch the view
   switchView(v);
 }
 
@@ -1059,7 +1067,12 @@ function renderProspects() {
   document.getElementById('fold-sub').textContent=list.length+' fiche'+(list.length>1?'s':'');
   document.getElementById('nb-p').textContent=S.companies.length;
   var grid=document.getElementById('prospect-grid');
-  if(!list.length){grid.innerHTML='<div class="empty"><div class="empty-ico">🏢</div><div class="empty-txt">Aucun prospect'+(q?' trouvé':'')+' ici</div></div>';return;}
+  if(!list.length){
+    grid.innerHTML='<div class="empty" style="grid-column:1/-1"><div class="empty-ico">🏢</div><div class="empty-txt">Aucun prospect'+(q?' trouvé':'')+' ici</div>'+
+      (!q?'<button class="btn bp" style="margin-top:14px;background:var(--green);box-shadow:0 2px 8px rgba(22,163,74,.3);padding:12px 20px;font-size:14px" onclick="navTo(\'import\')">📂 Importer un fichier CSV</button>':'')+
+    '</div>';
+    return;
+  }
   var tb={hot:'b-hot',warm:'b-warm',cold:'b-cold'};
   var tl={hot:'🔥 Chaud',warm:'🌤 Tiède',cold:'❄️ Froid'};
   grid.innerHTML=list.map(function(c){
