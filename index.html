@@ -1418,10 +1418,37 @@ var GEMINI_MODELS = [
   'gemini-1.5-pro-latest',
 ];
 
+// Retry helper — retries on 429/503 with delay
+async function fetchWithRetry(url, opts, maxRetries) {
+  maxRetries = maxRetries || 3;
+  var delay = 8000; // start at 8s
+  for (var attempt = 0; attempt <= maxRetries; attempt++) {
+    var r = await fetch(url, opts);
+    if (r.ok) return r;
+    var body = await r.text();
+    var code = 0;
+    try { code = JSON.parse(body).error.code; } catch(e) {}
+    // Retry on 429 (quota) or 503 (overload)
+    if ((code === 429 || code === 503) && attempt < maxRetries) {
+      var waitSec = Math.round(delay / 1000);
+      // Show retry status in PDF queue if visible
+      var items = document.querySelectorAll('.pdf-status');
+      items.forEach(function(el) {
+        if (el.textContent.indexOf('cours') !== -1)
+          el.textContent = 'Serveur surchargé — nouvel essai dans ' + waitSec + 's… (' + (attempt+1) + '/' + maxRetries + ')';
+      });
+      await new Promise(function(res) { setTimeout(res, delay); });
+      delay = Math.min(delay * 2, 60000); // max 60s
+      continue;
+    }
+    throw new Error(body.slice(0, 200));
+  }
+}
+
 async function gemini(prompt, key) {
   var model = S.geminiModel || 'gemini-1.5-flash';
   var ver = S.geminiVersion || 'v1beta';
-  var r = await fetch(
+  var r = await fetchWithRetry(
     'https://generativelanguage.googleapis.com/' + ver + '/models/' + model + ':generateContent?key=' + key,
     {
       method: 'POST',
@@ -1432,7 +1459,6 @@ async function gemini(prompt, key) {
       })
     }
   );
-  if (!r.ok) { var e = await r.text(); throw new Error('Gemini erreur: ' + e.slice(0,200)); }
   var d = await r.json();
   var txt = d.candidates && d.candidates[0] && d.candidates[0].content &&
             d.candidates[0].content.parts && d.candidates[0].content.parts[0] &&
@@ -1444,7 +1470,7 @@ async function gemini(prompt, key) {
 async function geminiPdf(b64, prompt, key) {
   var model = S.geminiModel || 'gemini-1.5-flash';
   var ver = S.geminiVersion || 'v1beta';
-  var r = await fetch(
+  var r = await fetchWithRetry(
     'https://generativelanguage.googleapis.com/' + ver + '/models/' + model + ':generateContent?key=' + key,
     {
       method: 'POST',
@@ -1458,7 +1484,6 @@ async function geminiPdf(b64, prompt, key) {
       })
     }
   );
-  if (!r.ok) { var e = await r.text(); throw new Error('Gemini erreur: ' + e.slice(0,200)); }
   var d = await r.json();
   var txt = d.candidates && d.candidates[0] && d.candidates[0].content &&
             d.candidates[0].content.parts && d.candidates[0].content.parts[0] &&
