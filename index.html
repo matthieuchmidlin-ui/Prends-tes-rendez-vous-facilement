@@ -1607,16 +1607,17 @@ async function autoDetectModel() {
   if (!k) { toast('Saisissez votre clé d\'abord', 'err'); return; }
   var st = document.getElementById('key-status');
   st.style.color = 'var(--ink3)';
-  st.textContent = 'Récupération des modèles disponibles…';
+  st.textContent = 'Récupération des modèles…';
 
   try {
-    // Get real list of models
+    // Get model list (1 request only, no generateContent)
     var listR = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + k);
     if (!listR.ok) {
       var le = await listR.text();
-      try { var lej = JSON.parse(le); throw new Error(lej.error.message); } catch(e2) { throw new Error(le.slice(0,150)); }
+      try { var lej = JSON.parse(le); throw new Error(lej.error.message); } catch(e2) { if(e2.message !== le) throw e2; throw new Error(le.slice(0,150)); }
     }
     var listData = await listR.json();
+
     var allModels = (listData.models || [])
       .filter(function(m) {
         return m.supportedGenerationMethods &&
@@ -1624,9 +1625,9 @@ async function autoDetectModel() {
       })
       .map(function(m) { return m.name.replace('models/', ''); });
 
-    if (!allModels.length) throw new Error('Aucun modèle disponible sur ce compte');
+    if (!allModels.length) throw new Error('Aucun modèle disponible');
 
-    // Update selector with real list
+    // Update selector
     var sel = document.getElementById('gemini-model-select');
     if (sel) {
       sel.innerHTML = allModels.map(function(m) {
@@ -1634,48 +1635,23 @@ async function autoDetectModel() {
       }).join('');
     }
 
-    st.textContent = allModels.length + ' modèles trouvés. Test PDF en cours…';
+    // Pick best model without testing (save quota)
+    // Priority: gemini-1.5-pro > gemini-1.5-flash > any flash > any
+    var pick = allModels.find(function(m) { return m === 'gemini-1.5-pro'; }) ||
+               allModels.find(function(m) { return m === 'gemini-1.5-flash'; }) ||
+               allModels.find(function(m) { return m.indexOf('1.5') !== -1 && m.indexOf('flash') !== -1; }) ||
+               allModels.find(function(m) { return m.indexOf('flash') !== -1; }) ||
+               allModels[0];
 
-    // Tiny valid PDF in base64 (1-page blank) to test PDF support
-    var TINY_PDF = 'JVBERi0xLjAKMSAwIG9iajw8L1R5cGUvQ2F0YWxvZy9QYWdlcyAyIDAgUj4+ZW5kb2JqIDIgMCBvYmo8PC9UeXBlL1BhZ2VzL0tpZHNbMyAwIFJdL0NvdW50IDE+PmVuZG9iaiAzIDAgb2JqPDwvVHlwZS9QYWdlL01lZGlhQm94WzAgMCAzIDNdPj5lbmRvYmogCnhyZWYgCjAgNCAKMDAwMDAwMDAwMCA2NTUzNSBmIAowMDAwMDAwMDA5IDAwMDAwIG4gCjAwMDAwMDAwNTggMDAwMDAgbiAKMDAwMDAwMDExNSAwMDAwMCBuIAp0cmFpbGVyPDwvU2l6ZSA0L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYgCjE5MCAKJSVFT0Y=';
+    S.geminiModel = pick;
+    S.geminiVersion = 'v1beta';
+    S.geminiKey = k;
+    save();
+    if (sel) sel.value = pick;
 
-    // Test each flash model with a real PDF request
-    var flashModels = allModels.filter(function(m) { return m.indexOf('flash') !== -1; });
-    var proModels = allModels.filter(function(m) { return m.indexOf('flash') === -1; });
-    var toTest = flashModels.concat(proModels);
-
-    for (var i = 0; i < toTest.length; i++) {
-      var m = toTest[i];
-      st.textContent = 'Test PDF avec ' + m + '…';
-      try {
-        var r = await fetch(
-          'https://generativelanguage.googleapis.com/v1beta/models/' + m + ':generateContent?key=' + k,
-          {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              contents: [{ parts: [
-                { inline_data: { mime_type: 'application/pdf', data: TINY_PDF } },
-                { text: 'Réponds juste "ok"' }
-              ]}]
-            })
-          }
-        );
-        if (r.ok) {
-          S.geminiModel = m;
-          S.geminiVersion = 'v1beta';
-          S.geminiKey = k;
-          save();
-          if (sel) sel.value = m;
-          st.textContent = '✓ Modèle PDF compatible : ' + m;
-          st.style.color = 'var(--green)';
-          toast('✓ Prêt ! Modèle PDF : ' + m, 'ok');
-          return;
-        }
-      } catch(e) {}
-    }
-
-    throw new Error('Aucun modèle ne supporte les PDFs sur ce compte. Essayez un autre compte Google.');
+    st.textContent = '✓ ' + allModels.length + ' modèles trouvés. Sélectionné : ' + pick;
+    st.style.color = 'var(--green)';
+    toast('✓ Clé validée ! Modèle : ' + pick, 'ok');
 
   } catch(e) {
     st.textContent = '✕ ' + e.message;
@@ -1735,8 +1711,11 @@ function updateHdr() {
 }
 
 // ═══ INIT ═══
+// Unregister any old service workers that may block API calls
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js').catch(function(){});
+  navigator.serviceWorker.getRegistrations().then(function(regs) {
+    regs.forEach(function(r) { r.unregister(); });
+  });
 }
 renderFolders(); renderProspects(); updateHdr();
 // Prompt settings on first use
