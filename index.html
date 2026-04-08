@@ -1717,15 +1717,24 @@ function saveGeminiKey() {
 async function testGeminiKey() {
   var k = document.getElementById('gemini-key-input').value.trim();
   if (!k) { toast('Saisissez une clé d\'abord', 'err'); return; }
-  document.getElementById('key-status').textContent = 'Test en cours…';
+  var st = document.getElementById('key-status');
+  st.textContent = 'Vérification…'; st.style.color = 'var(--ink3)';
   try {
-    var txt = await gemini('Réponds juste "ok"', k);
-    document.getElementById('key-status').textContent = '✓ Connexion réussie !';
-    document.getElementById('key-status').style.color = 'var(--green)';
-    toast('Gemini connecté avec succès !', 'ok');
+    // Use ListModels — free, no quota consumed
+    var r = await fetch('https://generativelanguage.googleapis.com/v1beta/models?key=' + k);
+    if (!r.ok) {
+      var e = await r.json();
+      throw new Error(e.error && e.error.message ? e.error.message : 'Clé invalide');
+    }
+    var d = await r.json();
+    var count = (d.models || []).length;
+    S.geminiKey = k; save();
+    st.textContent = '✓ Clé valide — ' + count + ' modèles disponibles';
+    st.style.color = 'var(--green)';
+    toast('✓ Clé valide ! Cliquez "Détecter le bon modèle"', 'ok');
   } catch(e) {
-    document.getElementById('key-status').textContent = '✕ Erreur: ' + e.message.slice(0,60);
-    document.getElementById('key-status').style.color = 'var(--red)';
+    st.textContent = '✕ ' + e.message.slice(0, 80);
+    st.style.color = 'var(--red)';
   }
 }
 
