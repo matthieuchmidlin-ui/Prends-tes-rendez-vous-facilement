@@ -643,6 +643,19 @@ Cordialement,
       </div>
 
       <div class="card-box">
+        <div class="card-box-title">⚙️ Options</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:4px 0">
+          <div>
+            <div style="font-size:13px;font-weight:600;color:var(--ink)">Recherche gérant avant appel</div>
+            <div style="font-size:12px;color:var(--ink3);margin-top:2px">Utilise Gemini pour trouver le dirigeant. Désactiver = appel direct sans IA.</div>
+          </div>
+          <div id="gerant-toggle" onclick="toggleGerant()" style="cursor:pointer;width:48px;height:26px;border-radius:13px;background:var(--acc);display:flex;align-items:center;padding:3px;transition:all .2s;flex-shrink:0;margin-left:16px">
+            <div style="width:20px;height:20px;border-radius:50%;background:white;transition:transform .2s;transform:translateX(22px)"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card-box">
         <div class="card-box-title">ℹ️ Fonctions IA disponibles</div>
         <div style="font-size:13px;color:var(--ink2);line-height:2">
           ✅ Import PDF → extraction automatique des entreprises<br>
@@ -820,6 +833,7 @@ var S = JSON.parse(localStorage.getItem('cp3') || 'null') || {
   geminiKey: '',
   geminiModel: 'gemini-1.5-flash',
   geminiVersion: 'v1beta',
+  gerantEnabled: true,
   tpl: {
     sender: '',
     subject: 'Confirmation de votre rendez-vous',
@@ -1093,6 +1107,22 @@ function launchCall(coId) {
   var co = S.companies.find(function(x) { return x.id === coId; });
   if (!co || !co.phone) return;
   pendCoId = coId;
+
+  // If gerant search disabled → dial immediately
+  if (!S.gerantEnabled) {
+    var call = {
+      id: 'call' + Date.now(), companyId: co.id,
+      contact: co.contact || co.name, company: co.name,
+      phone: co.phone, date: new Date().toISOString(),
+      status: 'En cours', temp: co.temp, notes: '', rdvId: null
+    };
+    S.calls.unshift(call); save();
+    window.location.href = 'tel:' + co.phone.replace(/\s/g, '');
+    setTimeout(function() { openPostCall(call.id); }, 1500);
+    return;
+  }
+
+  // Otherwise show gerant modal
   document.getElementById('ger-title').textContent = co.name;
   document.getElementById('ger-sub').textContent = (co.addr||'') + (co.sector ? ' · ' + co.sector : '');
   document.getElementById('ger-zone').innerHTML = '<div class="ger-searching"><div class="spin"></div>Recherche du gérant / dirigeant…</div>';
@@ -1595,8 +1625,21 @@ function useChip(el) { document.getElementById('ai-input').value = el.textConten
 function loadSettings() {
   document.getElementById('gemini-key-input').value = S.geminiKey || '';
   var sel = document.getElementById('gemini-model-select');
-  if (sel) sel.value = S.geminiModel || 'gemini-2.0-flash-exp';
+  if (sel) sel.value = S.geminiModel || 'gemini-1.5-flash';
   updateKeyStatus();
+  updateGerantToggle();
+}
+function updateGerantToggle() {
+  var tog = document.getElementById('gerant-toggle');
+  if (!tog) return;
+  var on = S.gerantEnabled !== false;
+  tog.style.background = on ? 'var(--acc)' : 'var(--border2)';
+  tog.firstElementChild.style.transform = on ? 'translateX(22px)' : 'translateX(0px)';
+}
+function toggleGerant() {
+  S.gerantEnabled = S.gerantEnabled === false ? true : false;
+  save(); updateGerantToggle();
+  toast(S.gerantEnabled ? '✓ Recherche gérant activée' : '✓ Appel direct — sans IA', 'ok');
 }
 function saveGeminiModel() {
   S.geminiModel = document.getElementById('gemini-model-select').value;
