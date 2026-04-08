@@ -247,6 +247,7 @@ td { padding: 12px 14px; font-size: 13px; vertical-align: middle; }
 .b-warm { background: var(--gold-l); color: var(--gold); }
 .b-cold { background: #f1f5f9; color: #64748b; }
 .b-rdv { background: var(--green-l); color: var(--green); }
+.b-clot { background: #f1f5f9; color: #64748b; }
 
 /* ─── SEARCH / FILTER ─── */
 .toolbar { display: flex; gap: 8px; }
@@ -633,6 +634,7 @@ select.fsel {
     <div class="nsec">Outils</div>
     <div class="ni" data-view="ai" onclick="nav(this)"><span class="ico">✦</span>Assistant IA</div>
     <div class="ni" data-view="emails" onclick="nav(this)"><span class="ico">✉</span>Modèles mail</div>
+    <div class="ni" data-view="backup" onclick="nav(this)"><span class="ico">💾</span>Sauvegarde</div>
     <div style="margin-top:auto;padding-top:12px">
       <button class="sidebar-btn" onclick="openAddCo(null)">+ Nouveau prospect</button>
     </div>
@@ -649,6 +651,15 @@ select.fsel {
           <button class="btn bp bsm" style="background:var(--green);box-shadow:0 2px 8px rgba(22,163,74,.3)" onclick="navTo('import')">📂 Importer CSV</button>
           <button class="btn bp bsm" onclick="openAddCo(null)">+ Ajouter</button>
         </div>
+      </div>
+      <!-- Bulk gerant search bar -->
+      <div id="gerant-cta" style="background:var(--acc-l);border:1px solid var(--acc-m);border-radius:var(--r);padding:12px 16px;display:flex;align-items:center;gap:12px;display:none">
+        <span style="font-size:20px">🔍</span>
+        <div style="flex:1">
+          <div style="font-size:13px;font-weight:700;color:var(--ink);margin-bottom:1px">Rechercher tous les gérants en arrière-plan</div>
+          <div style="font-size:11px;color:var(--ink3)" id="gerant-cta-sub">L'IA va chercher automatiquement les dirigeants de tous vos prospects</div>
+        </div>
+        <button class="btn bp bsm" onclick="startBgSearch();document.getElementById('gerant-cta').style.display='none'">✦ Lancer</button>
       </div>
       <div class="toolbar">
         <div class="srch"><span class="srch-ico">🔍</span><input id="p-srch" placeholder="Rechercher…" oninput="renderProspects()"></div>
@@ -678,7 +689,7 @@ select.fsel {
         <div class="srch"><span class="srch-ico">🔍</span><input id="c-srch" placeholder="Rechercher…" oninput="renderCalls()"></div>
         <select class="fsel" id="c-filt" onchange="renderCalls()">
           <option value="">Tous</option>
-          <option>Effectué</option><option>En attente</option><option>Manqué</option>
+          <option>Effectué</option><option>En attente</option><option>Manqué</option><option>Clôturé</option>
         </select>
       </div>
       <div class="tbl-wrap"><div class="tbl-scroll">
@@ -796,6 +807,69 @@ Cordialement,
       </div>
     </div>
 
+    <!-- BACKUP / iCLOUD SYNC -->
+    <div class="view" id="view-backup">
+      <div class="ph"><div><div class="ph-title">Sauvegarde iCloud</div><div class="ph-sub">Synchronisation automatique entre appareils</div></div></div>
+
+      <!-- Sync status card -->
+      <div class="card" id="sync-status-card">
+        <div class="card-title">☁️ État de la synchronisation</div>
+        <div id="sync-status-body">
+          <div style="font-size:13px;color:var(--ink2);line-height:1.7;margin-bottom:16px">
+            La synchronisation utilise <b>iCloud Drive via WebDAV</b>.<br>
+            Une fois configurée, toutes vos données se synchronisent automatiquement entre iPhone, iPad et iMac.
+          </div>
+          <div id="sync-indicator" style="display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:14px;margin-bottom:16px">
+            <div style="font-size:24px" id="sync-ico">⚙️</div>
+            <div>
+              <div style="font-weight:700;font-size:13px" id="sync-title">Non configuré</div>
+              <div style="font-size:11px;color:var(--ink3);margin-top:2px" id="sync-sub">Configurez iCloud WebDAV ci-dessous</div>
+            </div>
+            <div id="sync-spin" style="display:none;margin-left:auto"><div class="spin"></div></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn bp" style="flex:1;justify-content:center" onclick="syncNow()" id="btn-sync-now">☁️ Sync maintenant</button>
+            <button class="btn bg" style="flex:1;justify-content:center" onclick="exportBackup()">💾 Export local</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- iCloud config -->
+      <div class="card">
+        <div class="card-title">⚙️ Configuration iCloud WebDAV</div>
+        <div style="background:var(--gold-l);border:1px solid #fcd34d;border-radius:var(--r);padding:12px 14px;font-size:12px;color:var(--gold);margin-bottom:16px;line-height:1.7">
+          <b>Comment configurer :</b><br>
+          1. Sur Mac : <b>Finder → iCloud Drive</b> — le chemin WebDAV est automatique<br>
+          2. Sur iPhone/iPad : l'app utilise l'<b>API iCloud Drive</b> via votre Apple ID<br>
+          3. Entrez votre Apple ID et un mot de passe d'app spécifique (Réglages → Apple ID → Mot de passe & sécurité → Mots de passe pour apps)
+        </div>
+        <div class="fg"><label>Apple ID (email)</label><input id="icl-user" type="email" placeholder="votre@icloud.com" oninput="saveIcloudConfig()"></div>
+        <div class="fg"><label>Mot de passe d'application spécifique</label><input id="icl-pass" type="password" placeholder="xxxx-xxxx-xxxx-xxxx" oninput="saveIcloudConfig()"></div>
+        <div class="fg"><label>Nom du fichier de sauvegarde</label><input id="icl-file" placeholder="commercial-pro-backup.json" oninput="saveIcloudConfig()"></div>
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn bp" style="flex:1;justify-content:center" onclick="testIcloudConnection()">🔗 Tester la connexion</button>
+          <button class="btn bg" style="flex:1;justify-content:center" onclick="clearIcloudConfig()">✕ Effacer</button>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="card">
+        <div class="card-title">📊 Données actuelles</div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px" id="backup-stats"></div>
+      </div>
+
+      <!-- Manual backup -->
+      <div class="card">
+        <div class="card-title">📥 Restauration manuelle</div>
+        <div style="font-size:13px;color:var(--ink2);margin-bottom:12px">Charger un fichier .json de sauvegarde</div>
+        <div class="drop-zone" style="padding:24px 16px" onclick="document.getElementById('backup-inp').click()">
+          <div style="font-size:24px;margin-bottom:6px">📥</div>
+          <div style="font-weight:600;font-size:13px">Glissez ou cliquez pour choisir</div>
+        </div>
+        <input type="file" id="backup-inp" accept=".json" style="display:none" onchange="handleBackupFile(event)">
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -817,8 +891,9 @@ Cordialement,
     <button class="tab-item" data-view="ai" onclick="tabNav(this)">
       <span class="tab-ico">✦</span><span class="tab-lbl">IA</span>
     </button>
-    <button class="tab-item" data-view="emails" onclick="tabNav(this)">
-      <span class="tab-ico">✉</span><span class="tab-lbl">Mails</span>
+    <button class="tab-item" data-view="backup" onclick="tabNav(this)">
+      <span class="tab-ico">💾</span><span class="tab-lbl">Backup</span>
+    </button>
     </button>
   </div>
 </div>
@@ -874,7 +949,7 @@ Cordialement,
       <div class="fg"><label>Téléphone</label><input id="call-phone" type="tel" placeholder="+33…"></div>
       <div class="fgrid2">
         <div class="fg"><label>Date & heure</label><input id="call-date" type="datetime-local"></div>
-        <div class="fg"><label>Statut</label><select id="call-status"><option>Effectué</option><option>En attente</option><option>Manqué</option></select></div>
+        <div class="fg"><label>Statut</label><select id="call-status"><option>Effectué</option><option>En attente</option><option>Manqué</option><option>Clôturé</option></select></div>
       </div>
       <div class="fg"><label>Notes</label><textarea id="call-notes" placeholder="Résumé…"></textarea></div>
       <div class="mact"><button class="btn bg" onclick="closeM('ov-call')">Annuler</button><button class="btn bp" onclick="saveManualCall()">Enregistrer</button></div>
@@ -988,6 +1063,7 @@ function switchView(v) {
   if(v==='calls') renderCalls();
   if(v==='rdv') renderRdv();
   if(v==='emails') loadTpl();
+  if(v==='backup') renderBackupStats();
   updateHdr();
 }
 function navTo(v) {
@@ -1079,6 +1155,35 @@ function renderProspects() {
     var g=c.gerant;
     var gl=g&&g.nom?'<div class="ger-strip"><span>👤</span><span class="gn">'+g.nom+'</span><span class="gr">— '+(g.titre||'Dirigeant')+'</span><button class="rfbtn" onclick="event.stopPropagation();resetGer(\''+c.id+'\')">↻</button></div>':'';
     var pb=c.phone?'<button class="call-big" onclick="launchCall(\''+c.id+'\')"><span class="ring">📞</span> Appeler '+c.phone+'</button>':'';
+
+    // Last call info (with or without notes)
+    var lastCall = S.calls.filter(function(cl){ return cl.companyId === c.id; })
+      .sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); })[0];
+    var lastRdv = S.rdvs.filter(function(r){ return r.companyId === c.id; })
+      .sort(function(a,b){ return (b.createdAt||'').localeCompare(a.createdAt||''); })[0];
+
+    var noteHtml = '';
+    if (lastRdv) {
+      noteHtml = '<div style="display:flex;align-items:flex-start;gap:7px;background:var(--green-l);border:1px solid #86efac;border-radius:8px;padding:7px 10px;margin-bottom:8px;font-size:11px;color:var(--green)">' +
+        '<span style="flex-shrink:0">📅</span>' +
+        '<span><b>RDV</b> ' + fmtDate(lastRdv.date) + ' à ' + lastRdv.time + (lastRdv.notes ? ' — ' + lastRdv.notes : '') + '</span>' +
+        '</div>';
+    } else if (lastCall && lastCall.status === 'Clôturé') {
+      noteHtml = '<div style="display:flex;align-items:flex-start;gap:7px;background:#f1f5f9;border:1px solid #cbd5e1;border-radius:8px;padding:7px 10px;margin-bottom:8px;font-size:11px;color:#64748b">' +
+        '<span style="flex-shrink:0">🚫</span>' +
+        '<span><b>Pas intéressé</b>' + (lastCall.notes ? ' — ' + lastCall.notes : '') + '</span>' +
+        '</div>';
+    } else if (lastCall && lastCall.notes) {
+      var callDate = lastCall.date ? new Date(lastCall.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}) : '';
+      noteHtml = '<div style="display:flex;align-items:flex-start;gap:7px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:7px 10px;margin-bottom:8px;font-size:11px;color:var(--ink2)">' +
+        '<span style="flex-shrink:0;color:var(--ink3)">📞</span>' +
+        '<span style="flex:1;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">' +
+          (callDate ? '<span style="color:var(--ink3);margin-right:4px">'+callDate+'</span>' : '') +
+          lastCall.notes +
+        '</span>' +
+        '</div>';
+    }
+
     return '<div class="cc">'+
       '<div class="cch">'+
         '<div class="ccav">'+(c.name[0]||'?').toUpperCase()+'</div>'+
@@ -1089,9 +1194,11 @@ function renderProspects() {
       (c.phone?'<div class="ccm" style="margin-bottom:8px">📱 '+c.phone+'</div>':'')+
       (c.addr?'<div class="ccm" style="margin-bottom:10px">📍 '+c.addr+'</div>':'')+
       '<div style="margin-bottom:8px">'+pb+'</div>'+
-      '<div style="display:flex;gap:6px">'+
+      noteHtml+
+      '<div style="display:flex;gap:6px;align-items:center">'+
         '<button class="btn bg bsm" onclick=\'openAddCo(JSON.parse(decodeURIComponent("'+encodeURIComponent(JSON.stringify(c))+'")))\'>✏️</button>'+
         '<button class="btn bd bsm" onclick="deleteCo(\''+c.id+'\')">✕</button>'+
+        (lastCall&&lastCall.followup?'<span style="margin-left:4px;font-size:11px;color:var(--acc);font-weight:600">🔁 '+fmtDate(lastCall.followup)+'</span>':'')+
       '</div>'+
     '</div>';
   }).join('');
@@ -1112,29 +1219,117 @@ function launchCall(coId) {
   if(co.gerant) showGer(co.gerant,co); else searchGer(co);
 }
 async function searchGer(co) {
+  // ① Essai API officielle annuaire-entreprises.data.gouv.fr
+  var result = await searchGerGouv(co);
+  // ② Fallback IA si rien trouvé
+  if (!result || !result.nom) result = await searchGerAI(co);
+  // Sauvegarder
+  var idx = S.companies.findIndex(function(x){ return x.id === co.id; });
+  if (idx !== -1) {
+    S.companies[idx].gerant = result;
+    if (result && result.nom && !S.companies[idx].contact) S.companies[idx].contact = result.nom;
+    save();
+  }
+  showGer(result, co);
+}
+
+async function searchGerGouv(co) {
   try {
-    var q=[co.name,co.addr,co.sector].filter(Boolean).join(', ');
-    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({
-      model:'claude-haiku-4-5-20251001',max_tokens:400,
-      tools:[{type:'web_search_20250305',name:'web_search'}],
-      system:'Cherche le gérant de l\'entreprise. Réponds UNIQUEMENT en JSON: {"nom":"Prénom Nom ou null","titre":"Gérant/PDG ou null","confidence":3,"source":"site ou null","conseil":"1 phrase conseil","intro_suggere":"phrase naturelle"}',
-      messages:[{role:'user',content:'Gérant de "'+q+'" ?'}]
-    })});
-    var d=await r.json();
-    var tb=d.content&&d.content.find(function(b){return b.type==='text'});
-    if(!tb)throw new Error('no text');
-    var res=JSON.parse(tb.text.replace(/```json|```/g,'').trim());
-    var idx=S.companies.findIndex(function(x){return x.id===co.id});
-    if(idx!==-1){S.companies[idx].gerant=res;if(res.nom&&!S.companies[idx].contact)S.companies[idx].contact=res.nom;save();}
-    showGer(res,co);
-  } catch(e){showGer(null,co);}
+    // Extraire code postal depuis l'adresse
+    var cpMatch = (co.addr || '').match(/\b(5[0-9]{4})\b/);
+    var cp = cpMatch ? cpMatch[1] : '57200';
+    // Nettoyer le nom (retirer formes juridiques pour meilleure recherche)
+    var nom = co.name.replace(/\b(SARL|SAS|SA|SASU|EURL|SCI|GIE|SNC|EIRL)\b/gi,'').trim();
+    var url = 'https://recherche-entreprises.api.gouv.fr/search?q=' +
+      encodeURIComponent(nom) + '&code_postal=' + cp + '&per_page=3';
+    var r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    if (!r.ok) return null;
+    var data = await r.json();
+    var results = data.results || [];
+    if (!results.length) return null;
+    // Prendre le premier résultat avec des dirigeants
+    for (var i = 0; i < results.length; i++) {
+      var ent = results[i];
+      var dirigeants = ent.dirigeants || [];
+      if (dirigeants.length > 0) {
+        var d = dirigeants[0];
+        var prenom = d.prenom_usuel || d.prenom || '';
+        var nom_d = d.nom || '';
+        var fullName = (prenom + ' ' + nom_d).trim();
+        if (!fullName) continue;
+        // Capitaliser
+        fullName = fullName.split(' ').map(function(w){
+          return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+        }).join(' ');
+        var titre = d.qualite || d.titre || 'Gérant';
+        // Forcer majuscule première lettre du titre
+        titre = titre.charAt(0).toUpperCase() + titre.slice(1).toLowerCase();
+        var siren = ent.siren || '';
+        return {
+          nom: fullName,
+          titre: titre,
+          confidence: 5,
+          source: siren ? 'annuaire-entreprises.data.gouv.fr · SIREN ' + siren : 'annuaire-entreprises.data.gouv.fr',
+          intro_suggere: 'Bonjour, puis-je parler à ' + fullName.split(' ')[0] + ' ?',
+          conseil: 'Contact officiel enregistré au registre des entreprises.',
+          siren: siren,
+          tous_dirigeants: dirigeants.map(function(d2){
+            var p2 = d2.prenom_usuel || d2.prenom || '';
+            var n2 = d2.nom || '';
+            return ((p2+' '+n2).trim() + (d2.qualite ? ' ('+d2.qualite+')' : ''));
+          })
+        };
+      }
+    }
+    return null;
+  } catch(e) { return null; }
+}
+
+async function searchGerAI(co) {
+  try {
+    var q = [co.name, co.addr, co.sector].filter(Boolean).join(', ');
+    var r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-haiku-4-5-20251001', max_tokens: 400,
+        tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+        system: 'Cherche le gérant de l\'entreprise. Réponds UNIQUEMENT en JSON: {"nom":"Prénom Nom ou null","titre":"Gérant/PDG ou null","confidence":3,"source":"site ou null","conseil":"1 phrase conseil","intro_suggere":"phrase naturelle"}',
+        messages: [{ role: 'user', content: 'Gérant de "' + q + '" ?' }]
+      })
+    });
+    var d = await r.json();
+    var tb = d.content && d.content.find(function(b){ return b.type === 'text'; });
+    if (!tb) return null;
+    return JSON.parse(tb.text.replace(/```json|```/g,'').trim());
+  } catch(e) { return null; }
 }
 function showGer(res,co) {
   var zone=document.getElementById('ger-zone'),tips=document.getElementById('ger-tips'),btn=document.getElementById('ger-call-btn');
   if(res&&res.nom){
     var conf=res.confidence||3;
     var dots=[1,2,3,4,5].map(function(i){return '<div class="conf-dot'+(i<=conf?' on':'')+'"></div>'}).join('');
-    zone.innerHTML='<div class="ger-card-inner"><div class="ger-av">'+res.nom.trim()[0].toUpperCase()+'</div><div style="flex:1"><div class="ger-name">'+res.nom+'</div><div class="ger-role">'+(res.titre||'Dirigeant')+'</div>'+(res.intro_suggere?'<div class="ger-intro">💬 '+res.intro_suggere+'</div>':'')+'<div class="conf-bar"><span class="conf-lbl">Fiabilité</span><div class="conf-dots">'+dots+'</div><span class="conf-lbl">'+conf+'/5</span></div></div></div>';
+    var isGouv = res.source && res.source.includes('gouv');
+    var sourceBadge = isGouv
+      ? '<span style="display:inline-flex;align-items:center;gap:4px;background:#dbeafe;color:#1d4ed8;border-radius:6px;padding:3px 8px;font-size:10px;font-weight:700;margin-bottom:8px">🏛 Source officielle · data.gouv.fr</span>'
+      : '';
+    // Liste tous les dirigeants si disponible
+    var autresHtml = '';
+    if (res.tous_dirigeants && res.tous_dirigeants.length > 1) {
+      autresHtml = '<div style="margin-top:8px;font-size:11px;color:var(--ink3)"><b>Autres dirigeants :</b> ' +
+        res.tous_dirigeants.slice(1,4).join(', ') + '</div>';
+    }
+    zone.innerHTML='<div class="ger-card-inner">'+
+      '<div class="ger-av">'+res.nom.trim()[0].toUpperCase()+'</div>'+
+      '<div style="flex:1">'+
+        sourceBadge+
+        '<div class="ger-name">'+res.nom+'</div>'+
+        '<div class="ger-role">'+(res.titre||'Dirigeant')+'</div>'+
+        (res.intro_suggere?'<div class="ger-intro">💬 '+res.intro_suggere+'</div>':'')+
+        '<div class="conf-bar"><span class="conf-lbl">Fiabilité</span><div class="conf-dots">'+dots+'</div><span class="conf-lbl">'+conf+'/5</span></div>'+
+        autresHtml+
+      '</div>'+
+    '</div>';
     if(res.conseil){tips.innerHTML='<b>💡</b> '+res.conseil;tips.style.display='block';}
     if(res.source)document.getElementById('ger-src').textContent='Source : '+res.source;
   } else {
@@ -1216,10 +1411,18 @@ function savePostCall(){
     if(re)setTimeout(function(){openRdvDetail(rdv.id);},400);
     else addToCalForRdv(rdv);
   } else {
-    c.status=document.getElementById('pc-reason').value==='Pas de réponse'?'Manqué':'En attente';
-    c.notes=document.getElementById('pc-notes').value.trim();
-    c.followup=fuSelected||document.getElementById('pc-followup').value;
-    save();closeM('ov-postcall');renderCalls();
+    var reason = document.getElementById('pc-reason').value;
+    if (reason === 'Pas intéressé') {
+      c.status = 'Clôturé';
+    } else if (reason === 'Pas de réponse' || reason === 'Messagerie') {
+      c.status = 'Manqué';
+    } else {
+      c.status = 'En attente';
+    }
+    c.reason = reason;
+    c.notes = document.getElementById('pc-notes').value.trim();
+    c.followup = fuSelected || document.getElementById('pc-followup').value;
+    save(); closeM('ov-postcall'); renderCalls(); renderProspects();
     toast('Appel enregistré'+(c.followup?' · Relance '+fmtDate(c.followup):''),'ok');
   }
 }
@@ -1292,7 +1495,7 @@ function renderCalls(){
   document.getElementById('nb-c').textContent=tot;
   var tbody=document.getElementById('calls-tbody');
   if(!list.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="empty-ico">📞</div><div class="empty-txt">Aucun appel</div></div></td></tr>';return;}
-  var sb={'Effectué':'b-done','En attente':'b-pend','Manqué':'b-miss','Planifié':'b-sched','En cours':'b-sched'};
+  var sb={'Effectué':'b-done','En attente':'b-pend','Manqué':'b-miss','Planifié':'b-sched','En cours':'b-sched','Clôturé':'b-clot'};
   tbody.innerHTML=list.map(function(c){
     var rdv=c.rdvId?S.rdvs.find(function(r){return r.id===c.rdvId}):null;
     var fu=c.followup?'<span style="font-size:11px;color:var(--acc);font-weight:600">📅 '+fmtDate(c.followup)+'</span>':'<span style="color:var(--ink3);font-size:11px">—</span>';
@@ -1388,6 +1591,18 @@ function confirmImport(){
   renderFolders();renderProspects();updateHdr();
   toast(cnt+' prospects importés dans "'+fn+'"','ok');
   navTo('prospects');
+  // Show gerant bulk search CTA
+  setTimeout(function(){
+    var cta = document.getElementById('gerant-cta');
+    if (cta) {
+      var without = S.companies.filter(function(c){ return !c.gerant && c.phone; }).length;
+      if (without > 0) {
+        document.getElementById('gerant-cta-sub').textContent =
+          without + ' prospects sans gérant — l\'IA peut les chercher automatiquement';
+        cta.style.display = 'flex';
+      }
+    }
+  }, 500);
 }
 function cancelImport(){impBuffer=[];document.getElementById('imp-preview-zone').style.display='none';}
 
@@ -1461,8 +1676,317 @@ function updateHdr(){
   document.getElementById('h-rdv').textContent=S.rdvs.length;
 }
 
+// ═══ RECHERCHE GÉRANTS EN FOND ═══
+var bgSearch = { running: false, queue: [], done: 0, total: 0, stopped: false };
+
+function startBgSearch() {
+  // Build queue: all companies without gerant, with a phone number
+  var todo = S.companies.filter(function(c){ return !c.gerant && c.phone; });
+  if (!todo.length) { toast('Tous les gérants sont déjà trouvés ✓', 'ok'); return; }
+  bgSearch.queue = todo.map(function(c){ return c.id; });
+  bgSearch.done = 0;
+  bgSearch.total = todo.length;
+  bgSearch.stopped = false;
+  bgSearch.running = true;
+  showBgBanner();
+  runBgQueue();
+}
+
+function stopBgSearch() {
+  bgSearch.stopped = true;
+  bgSearch.running = false;
+  hideBgBanner();
+  toast('Recherche arrêtée — ' + bgSearch.done + '/' + bgSearch.total + ' traités', 'info');
+}
+
+async function runBgQueue() {
+  while (bgSearch.queue.length > 0 && !bgSearch.stopped) {
+    var coId = bgSearch.queue.shift();
+    var co = S.companies.find(function(x){ return x.id === coId; });
+    if (!co || co.gerant || !co.phone) { updateBgBanner(); continue; }
+    try {
+      // ① API officielle data.gouv.fr
+      var result = await searchGerGouv(co);
+      // ② Fallback IA seulement si rien trouvé sur data.gouv
+      if (!result || !result.nom) {
+        var q = [co.name, co.addr, co.sector].filter(Boolean).join(', ');
+        var r = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: 'claude-haiku-4-5-20251001', max_tokens: 200,
+            tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+            system: 'Cherche le gérant. JSON uniquement: {"nom":"Prénom Nom ou null","titre":"Gérant ou null","confidence":1}',
+            messages: [{ role: 'user', content: 'Gérant de "' + q + '" ?' }]
+          })
+        });
+        var d = await r.json();
+        var tb = d.content && d.content.find(function(b){ return b.type === 'text'; });
+        if (tb) result = JSON.parse(tb.text.replace(/```json|```/g,'').trim());
+      }
+      if (!bgSearch.stopped && result) {
+        var idx = S.companies.findIndex(function(x){ return x.id === coId; });
+        if (idx !== -1) {
+          S.companies[idx].gerant = result;
+          if (result.nom && !S.companies[idx].contact) S.companies[idx].contact = result.nom;
+        }
+      }
+    } catch(e) { /* skip */ }
+    bgSearch.done++;
+    if (!bgSearch.stopped) {
+      save();
+      updateBgBanner();
+      await new Promise(function(r){ setTimeout(r, 600); });
+    }
+  }
+  if (!bgSearch.stopped) {
+    bgSearch.running = false;
+    save(); renderProspects(); hideBgBanner();
+    toast('✓ Recherche terminée — ' + bgSearch.done + ' traités', 'ok');
+  }
+}
+
+function showBgBanner() {
+  var b = document.getElementById('bg-banner');
+  if (b) { b.style.display = 'flex'; updateBgBanner(); return; }
+  // Create banner
+  var banner = document.createElement('div');
+  banner.id = 'bg-banner';
+  banner.style.cssText = 'position:fixed;bottom:calc(70px + var(--sab));left:12px;right:12px;background:var(--white);border:1px solid var(--acc-m);border-radius:12px;padding:12px 16px;display:flex;align-items:center;gap:12px;box-shadow:0 4px 20px rgba(0,0,0,.12);z-index:300;';
+  banner.innerHTML =
+    '<div class="spin" style="border-top-color:var(--acc)"></div>' +
+    '<div style="flex:1;min-width:0">' +
+      '<div style="font-size:12px;font-weight:700;color:var(--ink)" id="bg-label">Recherche des gérants…</div>' +
+      '<div style="background:var(--border);border-radius:3px;height:3px;margin-top:5px"><div id="bg-bar" style="height:100%;background:var(--acc);border-radius:3px;transition:width .4s;width:0%"></div></div>' +
+    '</div>' +
+    '<button onclick="stopBgSearch()" style="background:var(--red-l);border:1px solid #fca5a5;color:var(--red);border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;flex-shrink:0">⏹ Stop</button>';
+  document.body.appendChild(banner);
+}
+
+function updateBgBanner() {
+  var lbl = document.getElementById('bg-label');
+  var bar = document.getElementById('bg-bar');
+  if (lbl) lbl.textContent = 'Gérants : ' + bgSearch.done + ' / ' + bgSearch.total + ' traités';
+  if (bar) bar.style.width = (bgSearch.total ? Math.round(bgSearch.done / bgSearch.total * 100) : 0) + '%';
+}
+
+function hideBgBanner() {
+  var b = document.getElementById('bg-banner');
+  if (b) { b.style.opacity = '0'; b.style.transition = 'opacity .3s'; setTimeout(function(){ b.remove(); }, 350); }
+}
+
+// ═══ iCLOUD WEBDAV SYNC ═══
+var WEBDAV_BASE = 'https://dav.developer.apple.com/'; // iCloud WebDAV endpoint
+var syncState = { lastSync: null, syncing: false };
+
+function getIcloudConfig() {
+  return {
+    user: document.getElementById('icl-user') ? document.getElementById('icl-user').value.trim() : (localStorage.getItem('icl_user')||''),
+    pass: document.getElementById('icl-pass') ? document.getElementById('icl-pass').value.trim() : (localStorage.getItem('icl_pass')||''),
+    file: (document.getElementById('icl-file') ? document.getElementById('icl-file').value.trim() : '') || 'commercial-pro-backup.json'
+  };
+}
+
+function saveIcloudConfig() {
+  localStorage.setItem('icl_user', document.getElementById('icl-user').value.trim());
+  localStorage.setItem('icl_pass', document.getElementById('icl-pass').value.trim());
+  localStorage.setItem('icl_file', document.getElementById('icl-file').value.trim());
+}
+
+function loadIcloudConfig() {
+  var u = document.getElementById('icl-user');
+  var p = document.getElementById('icl-pass');
+  var f = document.getElementById('icl-file');
+  if (u) u.value = localStorage.getItem('icl_user') || '';
+  if (p) p.value = localStorage.getItem('icl_pass') || '';
+  if (f) f.value = localStorage.getItem('icl_file') || 'commercial-pro-backup.json';
+}
+
+function setSyncStatus(ico, title, sub, spinning) {
+  var i = document.getElementById('sync-ico');
+  var t = document.getElementById('sync-title');
+  var s = document.getElementById('sync-sub');
+  var sp = document.getElementById('sync-spin');
+  if (i) i.textContent = ico;
+  if (t) t.textContent = title;
+  if (s) s.textContent = sub;
+  if (sp) sp.style.display = spinning ? 'block' : 'none';
+}
+
+async function testIcloudConnection() {
+  var cfg = getIcloudConfig();
+  if (!cfg.user || !cfg.pass) { toast('Entrez votre Apple ID et mot de passe app', 'err'); return; }
+  setSyncStatus('🔄', 'Test en cours…', 'Connexion à iCloud Drive', true);
+  try {
+    var auth = 'Basic ' + btoa(cfg.user + ':' + cfg.pass);
+    var url = WEBDAV_BASE + 'Documents/';
+    var r = await fetch(url, { method: 'PROPFIND', headers: { 'Authorization': auth, 'Depth': '0' } });
+    if (r.status === 207 || r.status === 200) {
+      setSyncStatus('✅', 'Connexion réussie', 'iCloud Drive accessible', false);
+      toast('Connexion iCloud OK ✓', 'ok');
+      localStorage.setItem('icl_connected', '1');
+    } else if (r.status === 401) {
+      setSyncStatus('❌', 'Authentification refusée', 'Vérifiez votre Apple ID et mot de passe app', false);
+      toast('Identifiants incorrects', 'err');
+    } else {
+      setSyncStatus('⚠️', 'Erreur ' + r.status, 'Vérifiez votre connexion', false);
+      toast('Erreur ' + r.status, 'err');
+    }
+  } catch(e) {
+    // WebDAV often blocked by CORS from browser — fallback info
+    setSyncStatus('ℹ️', 'CORS bloqué par le navigateur', 'Utilisez l\'app en PWA installée sur l\'écran d\'accueil', false);
+    toast('Astuce : installez l\'app sur l\'écran d\'accueil pour contourner CORS', 'info');
+  }
+}
+
+async function syncNow() {
+  var cfg = getIcloudConfig();
+  if (!cfg.user || !cfg.pass) { toast('Configurez d\'abord iCloud WebDAV', 'err'); navTo('backup'); return; }
+  if (syncState.syncing) return;
+  syncState.syncing = true;
+  setSyncStatus('🔄', 'Synchronisation…', 'Upload vers iCloud Drive', true);
+  try {
+    var auth = 'Basic ' + btoa(cfg.user + ':' + cfg.pass);
+    var fileUrl = WEBDAV_BASE + 'Documents/' + cfg.file;
+    var payload = JSON.stringify({ version: 2, syncedAt: new Date().toISOString(), data: S });
+
+    // Try to read remote first (pull)
+    try {
+      var getR = await fetch(fileUrl, { method: 'GET', headers: { 'Authorization': auth } });
+      if (getR.ok) {
+        var remote = await getR.json();
+        var remoteTime = new Date(remote.syncedAt || 0).getTime();
+        var localTime = new Date(syncState.lastSync || 0).getTime();
+        if (remoteTime > localTime) {
+          // Remote is newer — pull
+          if (confirm('Une version plus récente existe sur iCloud (' + new Date(remote.syncedAt).toLocaleString('fr-FR') + ').\nVoulez-vous la charger ?')) {
+            S = remote.data;
+            save();
+            renderFolders(); renderProspects(); updateHdr();
+            setSyncStatus('✅', 'Données chargées depuis iCloud', 'Synchronisé le ' + new Date().toLocaleTimeString('fr-FR'), false);
+            toast('✓ Données restaurées depuis iCloud', 'ok');
+            syncState.syncing = false;
+            syncState.lastSync = new Date().toISOString();
+            return;
+          }
+        }
+      }
+    } catch(e) {}
+
+    // Push local → iCloud
+    var putR = await fetch(fileUrl, {
+      method: 'PUT',
+      headers: { 'Authorization': auth, 'Content-Type': 'application/json' },
+      body: payload
+    });
+    if (putR.ok || putR.status === 201 || putR.status === 204) {
+      syncState.lastSync = new Date().toISOString();
+      setSyncStatus('✅', 'Synchronisé avec iCloud', 'Dernière sync : ' + new Date().toLocaleTimeString('fr-FR'), false);
+      localStorage.setItem('icl_last_sync', syncState.lastSync);
+      toast('✓ Sauvegardé sur iCloud Drive', 'ok');
+    } else {
+      throw new Error('HTTP ' + putR.status);
+    }
+  } catch(e) {
+    setSyncStatus('⚠️', 'Sync échouée', e.message.includes('CORS') ? 'Installez l\'app sur l\'écran d\'accueil (PWA)' : e.message, false);
+    toast('Sync échouée : ' + e.message, 'err');
+  }
+  syncState.syncing = false;
+}
+
+function clearIcloudConfig() {
+  ['icl_user','icl_pass','icl_file','icl_connected','icl_last_sync'].forEach(function(k){ localStorage.removeItem(k); });
+  loadIcloudConfig();
+  setSyncStatus('⚙️', 'Non configuré', 'Configurez iCloud WebDAV ci-dessous', false);
+  toast('Configuration effacée', 'info');
+}
+
+// Auto-sync every 5 minutes if configured
+setInterval(function() {
+  var u = localStorage.getItem('icl_user');
+  var p = localStorage.getItem('icl_pass');
+  if (u && p && !syncState.syncing && document.visibilityState !== 'hidden') {
+    syncNow();
+  }
+}, 5 * 60 * 1000);
+
+// Sync on page show (coming back to app)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible') {
+    var u = localStorage.getItem('icl_user');
+    var p = localStorage.getItem('icl_pass');
+    if (u && p) setTimeout(syncNow, 1000);
+  }
+});
+
+// ═══ BACKUP / RESTORE ═══
+function renderBackupStats() {
+  loadIcloudConfig();
+  var lastSync = localStorage.getItem('icl_last_sync');
+  if (lastSync) {
+    setSyncStatus('✅', 'Configuré', 'Dernière sync : ' + new Date(lastSync).toLocaleString('fr-FR'), false);
+  }
+  var el = document.getElementById('backup-stats');
+  if (!el) return;
+  var withGer = S.companies.filter(function(c){ return c.gerant && c.gerant.nom; }).length;
+  var items = [
+    { ico:'🏢', val:S.companies.length, lbl:'Prospects' },
+    { ico:'📞', val:S.calls.length, lbl:'Appels' },
+    { ico:'📅', val:S.rdvs.length, lbl:'RDV' },
+    { ico:'👤', val:withGer, lbl:'Gérants' },
+    { ico:'📁', val:S.folders.length, lbl:'Dossiers' },
+    { ico:'💾', val:Math.round(JSON.stringify(S).length/1024)+' Ko', lbl:'Taille' },
+  ];
+  el.innerHTML = items.map(function(i){
+    return '<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center">' +
+      '<div style="font-size:18px;margin-bottom:3px">'+i.ico+'</div>' +
+      '<div style="font-family:\'Fraunces\',serif;font-size:20px;font-weight:700;color:var(--ink)">'+i.val+'</div>' +
+      '<div style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-top:1px">'+i.lbl+'</div>' +
+    '</div>';
+  }).join('');
+}
+
+function exportBackup() {
+  var data = JSON.stringify({ version:2, exportedAt:new Date().toISOString(), data:S }, null, 2);
+  var blob = new Blob([data], { type:'application/json;charset=utf-8' });
+  var url = URL.createObjectURL(blob);
+  var d = new Date();
+  var ds = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  var a = document.createElement('a'); a.href=url; a.download='commercial-pro-backup-'+ds+'.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  toast('Sauvegarde téléchargée ✓', 'ok');
+}
+
+function onDropBackup(e) {
+  e.preventDefault();
+  var f = Array.from(e.dataTransfer.files).find(function(f){ return f.name.endsWith('.json'); });
+  if (f) readBackupFile(f);
+}
+function handleBackupFile(e) { var f=e.target.files[0]; if(f) readBackupFile(f); e.target.value=''; }
+function readBackupFile(file) {
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      var parsed = JSON.parse(e.target.result);
+      var restored = parsed.data || parsed;
+      if (!restored.companies || !Array.isArray(restored.companies)) throw new Error('Format invalide');
+      if (!confirm('Restaurer ?\n• '+restored.companies.length+' prospects\n• '+(restored.calls||[]).length+' appels\n• '+(restored.rdvs||[]).length+' RDV\n\nLes données actuelles seront remplacées.')) return;
+      S = { folders:restored.folders||[{id:'all',name:'Tous',icon:'🏢'}], curFolder:restored.curFolder||'all', companies:restored.companies||[], calls:restored.calls||[], rdvs:restored.rdvs||[], tpl:restored.tpl||S.tpl };
+      save(); renderFolders(); renderProspects(); renderBackupStats(); updateHdr();
+      toast('✓ '+S.companies.length+' prospects restaurés', 'ok');
+    } catch(err) { toast('Fichier invalide : '+err.message, 'err'); }
+  };
+  reader.readAsText(file, 'UTF-8');
+}
+
 // ═══ INIT ═══
 renderFolders();renderProspects();updateHdr();
+// Auto-sync on load if configured
+setTimeout(function(){
+  var u = localStorage.getItem('icl_user');
+  var p = localStorage.getItem('icl_pass');
+  if (u && p) syncNow();
+}, 2000);
 </script>
 </body>
 </html>
