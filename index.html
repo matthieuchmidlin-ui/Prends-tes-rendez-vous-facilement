@@ -1480,7 +1480,7 @@ async function geminiPdf(b64, prompt, key) {
           { inline_data: { mime_type: 'application/pdf', data: b64 } },
           { text: prompt }
         ]}],
-        generationConfig: { temperature: 0, maxOutputTokens: 8192 }
+        generationConfig: { temperature: 0, maxOutputTokens: 32768 }
       })
     }
   );
@@ -1504,6 +1504,16 @@ async function processNextPdf() {
     var key = S.geminiKey;
     if (!key) throw new Error('Clé API Gemini manquante — configurez-la dans Réglages');
 
+    // Check file size — warn if > 4MB
+    var sizeMB = (next.file.size / 1024 / 1024).toFixed(1);
+    if (next.file.size > 10 * 1024 * 1024) {
+      throw new Error('PDF trop volumineux (' + sizeMB + ' Mo). Maximum 10 Mo. Découpez le PDF en plusieurs fichiers.');
+    }
+
+    // Update status with file size info
+    var sizeEl = document.querySelector('#' + next.id + ' .pdf-status');
+    if (sizeEl) sizeEl.textContent = 'Lecture (' + sizeMB + ' Mo)…';
+
     // Read PDF as base64
     var b64 = await new Promise(function(resolve, reject) {
       var reader = new FileReader();
@@ -1515,12 +1525,11 @@ async function processNextPdf() {
       reader.readAsDataURL(next.file);
     });
 
-    next.pct = 50; renderPdfQueue();
+    next.pct = 40; renderPdfQueue();
 
-    var txt = await geminiPdf(b64,
-      'Extrais toutes les entreprises et contacts professionnels de ce document. Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après, sans markdown. Format: [{"name":"Nom entreprise","contact":"Nom contact","phone":"Téléphone","addr":"Adresse complète","email":"Email","sector":"Secteur activité"}]. Utilise "" pour les champs absents.',
-      key
-    );
+    var PROMPT = 'Extrais toutes les entreprises et contacts professionnels de ce document. Retourne UNIQUEMENT un tableau JSON valide, sans texte avant ou après, sans markdown. Format: [{"name":"Nom entreprise","contact":"Nom contact","phone":"Téléphone","addr":"Adresse complète","email":"Email","sector":"Secteur activité"}]. Utilise "" pour les champs absents. Si le document contient beaucoup d\'entreprises, extrais-les TOUTES sans limite.';
+
+    var txt = await geminiPdf(b64, PROMPT, key);
 
     next.pct = 90; renderPdfQueue();
 
