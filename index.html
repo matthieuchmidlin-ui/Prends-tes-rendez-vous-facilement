@@ -181,6 +181,33 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
 @keyframes tin{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
 @media(max-width:640px){.sidebar{display:none}.tab-bar{display:block}main{padding-bottom:calc(72px + var(--sab))}.toast-wrap{bottom:calc(76px + var(--sab))}.kpi-row{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}}
 @media(min-width:641px){.cg{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}.kpi-row{grid-template-columns:repeat(4,1fr)}.overlay{align-items:center;padding-bottom:0}.modal{border-radius:var(--r2);max-height:88vh}.modal::before{display:none}}
+/* STATUS BADGE ON PROSPECT CARD */
+.co-status{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;flex-shrink:0}
+.cs-new{background:var(--bg);color:var(--ink3);border:1px solid var(--border)}
+.cs-called{background:var(--acc-l);color:var(--acc);border:1px solid var(--acc-m)}
+.cs-pending{background:var(--gold-l);color:var(--gold);border:1px solid #fcd34d}
+.cs-rdv{background:var(--green-l);color:var(--green);border:1px solid #86efac}
+.cs-missed{background:var(--red-l);color:var(--red);border:1px solid #fca5a5}
+.cs-closed{background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1}
+.cs-today{background:#fef3c7;color:#d97706;border:1px solid #fcd34d;animation:pulse 1.5s ease infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
+/* SWIPE ACTIONS */
+.swipe-wrap{position:relative;overflow:hidden;border-radius:var(--r2);margin-bottom:0}
+.swipe-inner{transition:transform .15s ease;will-change:transform;background:var(--white);border-radius:var(--r2);border:1px solid var(--border)}
+.swipe-bg{position:absolute;top:0;bottom:0;right:0;display:flex;border-radius:0 var(--r2) var(--r2) 0;overflow:hidden}
+.swipe-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:72px;font-size:10px;font-weight:700;cursor:pointer;border:none;color:#fff}
+.swipe-call{background:var(--green)}
+.swipe-clot{background:#64748b}
+/* RELANCES TODAY */
+.relance-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:13px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .1s}
+.relance-card:active{background:var(--acc-l)}
+.relance-overdue .relance-card{border-left:3px solid var(--red)}
+/* STAT BARS */
+.stat-bar-row{display:flex;align-items:center;gap:10px;font-size:12px;margin-bottom:8px}
+.stat-bar-lbl{width:110px;color:var(--ink2);font-weight:500;flex-shrink:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.stat-bar-track{flex:1;height:8px;background:var(--bg);border-radius:4px;overflow:hidden;border:1px solid var(--border)}
+.stat-bar-fill{height:100%;border-radius:4px;transition:width .8s ease}
+.stat-bar-val{width:36px;text-align:right;color:var(--ink3);font-size:11px;font-family:'Geist Mono',monospace}
 </style>
 </head>
 <body>
@@ -193,17 +220,36 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
   <div class="sidebar">
     <div class="nsec">Navigation</div>
     <div class="ni active" data-view="prospects" onclick="nav(this)"><span class="ico">🏢</span>Prospects<span class="nbadge" id="nb-p">0</span></div>
+    <div class="ni" data-view="relances" onclick="nav(this)"><span class="ico">🔁</span>À rappeler<span class="nbadge" id="nb-r" style="background:var(--red)">0</span></div>
     <div class="ni" data-view="calls" onclick="nav(this)"><span class="ico">📞</span>Appels<span class="nbadge" id="nb-c">0</span></div>
     <div class="ni" data-view="rdv" onclick="nav(this)"><span class="ico">📅</span>Rendez-vous</div>
     <div class="ni" data-view="import" onclick="nav(this)"><span class="ico">📂</span>Importer CSV</div>
     <div class="nsep"></div>
     <div class="nsec">Outils</div>
+    <div class="ni" data-view="stats" onclick="nav(this)"><span class="ico">📊</span>Statistiques</div>
     <div class="ni" data-view="ai" onclick="nav(this)"><span class="ico">✦</span>Assistant IA</div>
     <div class="ni" data-view="emails" onclick="nav(this)"><span class="ico">✉</span>Modèles mail</div>
     <div class="ni" data-view="backup" onclick="nav(this)"><span class="ico">💾</span>Sauvegarde</div>
     <div style="margin-top:auto;padding-top:12px"><button class="sidebar-btn" onclick="openAddCo(null)">+ Nouveau prospect</button></div>
   </div>
   <main>
+    <!-- RELANCES DU JOUR -->
+    <div class="view" id="view-relances">
+      <div class="ph"><div><div class="ph-title">À rappeler</div><div class="ph-sub" id="relances-sub">—</div></div></div>
+      <div id="relances-today-section"></div>
+      <div id="relances-late-section"></div>
+      <div id="relances-upcoming-section"></div>
+    </div>
+
+    <!-- STATS -->
+    <div class="view" id="view-stats">
+      <div class="ph"><div><div class="ph-title">Statistiques</div><div class="ph-sub">Performance commerciale</div></div></div>
+      <div class="kpi-row" id="stats-kpi"></div>
+      <div class="card"><div class="card-title">📊 Taux de conversion</div><div id="stats-conversion"></div></div>
+      <div class="card"><div class="card-title">🏭 Appels par secteur</div><div id="stats-sectors"></div></div>
+      <div class="card"><div class="card-title">📅 Activité par jour (7 derniers jours)</div><div id="stats-daily"></div></div>
+    </div>
+
     <!-- PROSPECTS -->
     <div class="view active" id="view-prospects">
       <div class="ph">
@@ -366,11 +412,11 @@ Cordialement,
 <!-- TAB BAR -->
 <div class="tab-bar"><div class="tab-bar-inner">
   <button class="tab-item active" data-view="prospects" onclick="tabNav(this)"><span class="tab-ico">🏢</span><span class="tab-lbl">Prospects</span></button>
+  <button class="tab-item" data-view="relances" onclick="tabNav(this)"><span class="tab-ico">🔁</span><span class="tab-lbl">Relances</span></button>
   <button class="tab-item" data-view="calls" onclick="tabNav(this)"><span class="tab-ico">📞</span><span class="tab-lbl">Appels</span></button>
   <button class="tab-item" data-view="rdv" onclick="tabNav(this)"><span class="tab-ico">📅</span><span class="tab-lbl">RDV</span></button>
-  <button class="tab-item" data-view="import" onclick="tabNav(this)"><span class="tab-ico">📂</span><span class="tab-lbl">CSV</span></button>
+  <button class="tab-item" data-view="stats" onclick="tabNav(this)"><span class="tab-ico">📊</span><span class="tab-lbl">Stats</span></button>
   <button class="tab-item" data-view="backup" onclick="tabNav(this)"><span class="tab-ico">💾</span><span class="tab-lbl">Backup</span></button>
-  <button class="tab-item" data-view="ai" onclick="tabNav(this)"><span class="tab-ico">✦</span><span class="tab-lbl">IA</span></button>
 </div></div>
 
 <!-- MODALS -->
@@ -485,13 +531,39 @@ function pad(n){return n<10?'0'+n:''+n;}
 function toDateStr(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function fmtTime(d){return pad(d.getHours())+'h'+pad(d.getMinutes());}
 function fmtDate(d){if(!d)return'—';try{return new Date(d+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short',day:'numeric',month:'long'});}catch(e){return d;}}
-function updateHdr(){document.getElementById('h-total').textContent=S.calls.length;document.getElementById('h-rdv').textContent=S.rdvs.length;}
+function updateHdr(){
+  document.getElementById('h-total').textContent=S.calls.length;
+  document.getElementById('h-rdv').textContent=S.rdvs.length;
+  var today=toDateStr(new Date());
+  var relCount=S.calls.filter(function(c){return c.followup&&c.followup<=today&&c.status!=='Clôturé'&&c.status!=='Effectué';}).length;
+  var nbr=document.getElementById('nb-r');
+  if(nbr){nbr.textContent=relCount;nbr.style.display=relCount?'inline':'none';}
+}
 
 // NAV
 function nav(el){document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});el.classList.add('active');switchView(el.dataset.view);}
 function tabNav(el){document.querySelectorAll('.tab-item').forEach(function(t){t.classList.remove('active');});el.classList.add('active');document.querySelectorAll('.ni').forEach(function(n){n.classList.toggle('active',n.dataset.view===el.dataset.view);});switchView(el.dataset.view);}
 function navTo(v){document.querySelectorAll('.ni').forEach(function(n){n.classList.toggle('active',n.dataset.view===v);});document.querySelectorAll('.tab-item').forEach(function(t){t.classList.toggle('active',t.dataset.view===v);});switchView(v);}
-function switchView(v){document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active');});document.getElementById('view-'+v).classList.add('active');if(v==='prospects')renderProspects();if(v==='calls')renderCalls();if(v==='rdv')renderRdv();if(v==='emails')loadTpl();if(v==='backup')renderBackupStats();updateHdr();}
+function switchView(v){
+  // Sauvegarder position scroll avant de quitter
+  var cur=document.querySelector('.view.active');
+  if(cur&&cur.id){var m=document.querySelector('main');if(m)localStorage.setItem('scroll_'+cur.id,m.scrollTop);}
+  document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active');});
+  document.getElementById('view-'+v).classList.add('active');
+  if(v==='prospects')renderProspects();
+  if(v==='calls')renderCalls();
+  if(v==='rdv')renderRdv();
+  if(v==='relances')renderRelances();
+  if(v==='stats')renderStats();
+  if(v==='emails')loadTpl();
+  if(v==='backup')renderBackupStats();
+  updateHdr();
+  // Restaurer position scroll
+  var m=document.querySelector('main');
+  if(m){var saved=localStorage.getItem('scroll_view-'+v);m.scrollTop=saved?parseInt(saved):0;}
+  // Sauvegarder vue courante
+  localStorage.setItem('last_view',v);
+}
 
 // FOLDERS
 function renderFolders(){var bar=document.getElementById('folder-bar');bar.innerHTML=S.folders.map(function(f){var cnt=S.companies.filter(function(c){return f.id==='all'||c.folderId===f.id;}).length;return'<div class="ftab'+(f.id===S.curFolder?' active':'')+'" onclick="selFolder(\''+f.id+'\')">'+(f.icon||'📁')+' '+f.name+' <span class="cnt">'+cnt+'</span></div>';}).join('')+'<button class="ftab-add" onclick="openM(\'ov-folder\')">+</button>';}
@@ -536,16 +608,31 @@ function renderProspects(){
     var pb=c.phone?'<button class="call-big" onclick="launchCall(\''+c.id+'\')"><span class="ring">📞</span> Appeler '+c.phone+'</button>':'';
     var lastCall=S.calls.filter(function(cl){return cl.companyId===c.id;}).sort(function(a,b){return(b.date||'').localeCompare(a.date||'');})[0];
     var lastRdv=S.rdvs.filter(function(r){return r.companyId===c.id;}).sort(function(a,b){return(b.createdAt||'').localeCompare(a.createdAt||'');})[0];
+    // Status badge
+    var today=toDateStr(new Date());
+    var statusBadge='';
+    if(lastRdv){statusBadge='<span class="co-status cs-rdv">📅 RDV</span>';}
+    else if(lastCall){
+      if(lastCall.status==='Clôturé')statusBadge='<span class="co-status cs-closed">🚫 Clôturé</span>';
+      else if(lastCall.status==='Manqué')statusBadge='<span class="co-status cs-missed">❌ Manqué</span>';
+      else if(lastCall.followup&&lastCall.followup<today)statusBadge='<span class="co-status cs-today">⚡ En retard</span>';
+      else if(lastCall.followup&&lastCall.followup===today)statusBadge='<span class="co-status cs-today">🔁 Aujourd\'hui</span>';
+      else if(lastCall.followup)statusBadge='<span class="co-status cs-pending">🔁 '+fmtDate(lastCall.followup)+'</span>';
+      else statusBadge='<span class="co-status cs-called">📞 Appelé</span>';
+    } else {statusBadge='<span class="co-status cs-new">Nouveau</span>';}
     var note='';
     if(lastRdv)note='<div class="note-card note-rdv"><span>📅</span><span><b>RDV</b> '+fmtDate(lastRdv.date)+' à '+lastRdv.time+(lastRdv.notes?' — '+lastRdv.notes:'')+'</span></div>';
     else if(lastCall&&lastCall.status==='Clôturé')note='<div class="note-card note-clot"><span>🚫</span><span><b>Pas intéressé</b>'+(lastCall.notes?' — '+lastCall.notes:'')+'</span></div>';
     else if(lastCall&&lastCall.notes){var cd=lastCall.date?new Date(lastCall.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'';note='<div class="note-card note-call"><span>📞</span><span style="flex:1;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+(cd?'<span style="color:var(--ink3);margin-right:4px">'+cd+'</span>':'')+lastCall.notes+'</span></div>';}
     var cs=isMatch?'border:2px solid var(--acc);box-shadow:0 0 0 4px rgba(37,99,235,.1);':'';
-    return'<div class="cc" style="'+cs+'">'+(isMatch?'<div style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🎯 Correspondance</div>':'')+
-      '<div class="cch"><div class="ccav">'+(c.name[0]||'?').toUpperCase()+'</div><div style="flex:1;min-width:0"><div class="ccn">'+c.name+'</div><div class="ccm">'+(c.contact?c.contact+(c.sector?' · ':''):'')+( c.sector||'')+'</div></div><span class="badge '+(tb[c.temp]||'b-warm')+'">'+(tl[c.temp]||'—')+'</span></div>'+
+    return'<div class="swipe-wrap" id="sw-'+c.id+'" ontouchstart="swipeStart(event,\''+c.id+'\')" ontouchmove="swipeMove(event,\''+c.id+'\')" ontouchend="swipeEnd(event,\''+c.id+'\',\''+c.phone+'\')">'+
+    '<div class="swipe-bg"><button class="swipe-btn swipe-call" onclick="launchCall(\''+c.id+'\')"><span style="font-size:20px">📞</span>Appeler</button><button class="swipe-btn swipe-clot" onclick="quickClose(\''+c.id+'\')"><span style="font-size:20px">🚫</span>Clôturer</button></div>'+
+    '<div class="swipe-inner cc" style="'+cs+'">'+(isMatch?'<div style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🎯 Correspondance</div>':'')+
+      '<div class="cch"><div class="ccav">'+(c.name[0]||'?').toUpperCase()+'</div><div style="flex:1;min-width:0"><div class="ccn">'+c.name+'</div><div class="ccm">'+(c.contact?c.contact+(c.sector?' · ':''):'')+( c.sector||'')+'</div></div>'+statusBadge+'</div>'+
       gl+(c.phone?'<div class="ccm" style="margin-bottom:8px">📱 '+c.phone+'</div>':'')+(c.addr?'<div class="ccm" style="margin-bottom:10px">📍 '+c.addr+'</div>':'')+
       '<div style="margin-bottom:8px">'+pb+'</div>'+note+
-      '<div style="display:flex;gap:6px;align-items:center"><button class="btn bg bsm" onclick=\'openAddCo(JSON.parse(decodeURIComponent("'+encodeURIComponent(JSON.stringify(c))+'")))\'>✏️</button><button class="btn bd bsm" onclick="deleteCo(\''+c.id+'\')">✕</button>'+(lastCall&&lastCall.followup?'<span style="font-size:11px;color:var(--acc);font-weight:600;margin-left:4px">🔁 '+fmtDate(lastCall.followup)+'</span>':'')+'</div></div>';
+      '<div style="display:flex;gap:6px;align-items:center"><button class="btn bg bsm" onclick=\'openAddCo(JSON.parse(decodeURIComponent("'+encodeURIComponent(JSON.stringify(c))+'")))\'>✏️</button><button class="btn bd bsm" onclick="deleteCo(\''+c.id+'\')">✕</button>'+(lastCall&&lastCall.followup?'<span style="font-size:11px;color:var(--acc);font-weight:600;margin-left:4px">🔁 '+fmtDate(lastCall.followup)+'</span>':'')+'</div>'+
+    '</div></div>';
   }).join('');
   if(q&&mc){setTimeout(function(){var el=grid.querySelector('[style*="border:2px solid var(--acc)"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},60);}
   if(hasMore){var more=document.createElement('div');more.style.cssText='grid-column:1/-1;text-align:center;padding:8px';more.innerHTML='<button class="btn bg" style="width:100%;padding:12px;font-size:13px" onclick="loadMoreProspects(this)">↓ Voir les '+(list.length-PAGE)+' autres fiches</button>';grid.appendChild(more);}
@@ -700,8 +787,109 @@ function requestNotifPermission(){if(!('Notification'in window)){toast('Non supp
 function startNotifScheduler(){if(notifTimer)clearInterval(notifTimer);checkFollowUps();notifTimer=setInterval(checkFollowUps,60000);}
 function checkFollowUps(){if(typeof Notification==='undefined'||Notification.permission!=='granted')return;var now=new Date(),today=toDateStr(now),nowH=now.getHours(),nowM=now.getMinutes();S.calls.forEach(function(call){if(!call.followup||call.status==='Clôturé'||call.status==='Effectué')return;var nk='notif_'+call.id+'_'+call.followup;if(localStorage.getItem(nk))return;var fu=call.followup;var shouldNotify=(fu===today&&nowH===9&&nowM===0)||(fu<today);if(shouldNotify){var co=call.companyId?S.companies.find(function(x){return x.id===call.companyId;}):null;var name=call.contact||call.company||'Prospect';var n=new Notification('📞 Relance — '+name,{body:(co?co.name+'\n':'')+(co&&co.phone?'📱 '+co.phone+'\n':'')+(call.notes?'💬 '+call.notes.slice(0,60):'')+(fu<today?'\n⚠ En retard !':''),tag:nk,requireInteraction:true});n.onclick=function(){window.focus();navTo('calls');n.close();};localStorage.setItem(nk,'1');}});var todayRdvs=S.rdvs.filter(function(r){return r.date===today;});todayRdvs.forEach(function(r){if(!r.time)return;var parts=r.time.split(':'),rH=parseInt(parts[0]),rM=parseInt(parts[1]);var nH=rH,nM=rM-30;if(nM<0){nM+=60;nH--;}var nk='notif_rdv_'+r.id;if(!localStorage.getItem(nk)&&nowH===nH&&nowM===nM){new Notification('📅 RDV dans 30 min — '+(r.contact||r.company),{body:'🕐 '+r.time+'\n📍 '+(r.addr||''),tag:nk,requireInteraction:true});localStorage.setItem(nk,'1');}});}
 
+// SWIPE GESTURES
+var swipeState={};
+function swipeStart(e,id){var t=e.touches[0];swipeState[id]={x:t.clientX,moved:0};}
+function swipeMove(e,id){if(!swipeState[id])return;var dx=e.touches[0].clientX-swipeState[id].x;swipeState[id].moved=dx;if(dx<-5&&dx>-145){var el=document.querySelector('#sw-'+id+' .swipe-inner');if(el)el.style.transform='translateX('+dx+'px)';e.preventDefault();}}
+function swipeEnd(e,id,phone){if(!swipeState[id])return;var dx=swipeState[id].moved;var el=document.querySelector('#sw-'+id+' .swipe-inner');if(dx<-60){if(el)el.style.transform='translateX(-144px)';}else{if(el){el.style.transform='';}}swipeState[id]=null;}
+function swipeReset(id){var el=document.querySelector('#sw-'+id+' .swipe-inner');if(el)el.style.transform='';}
+
+// QUICK CLOSE FROM SWIPE
+function quickClose(coId){
+  swipeReset(coId);
+  var co=S.companies.find(function(x){return x.id===coId;});
+  if(!co)return;
+  if(!confirm('Marquer "'+co.name+'" comme Pas intéressé ?'))return;
+  var call={id:'call'+Date.now(),companyId:coId,contact:co.contact||co.name,company:co.name,phone:co.phone,date:new Date().toISOString(),status:'Clôturé',reason:'Pas intéressé',notes:'',rdvId:null};
+  S.calls.unshift(call);save();renderProspects();updateHdr();
+  toast(co.name+' clôturé','ok');
+}
+
+// RELANCES VIEW
+function renderRelances(){
+  var today=toDateStr(new Date());
+  var allCalls=S.calls.filter(function(c){return c.followup&&c.status!=='Clôturé'&&c.status!=='Effectué';});
+  var late=allCalls.filter(function(c){return c.followup<today;}).sort(function(a,b){return a.followup.localeCompare(b.followup);});
+  var todayList=allCalls.filter(function(c){return c.followup===today;});
+  var upcoming=allCalls.filter(function(c){return c.followup>today;}).sort(function(a,b){return a.followup.localeCompare(b.followup);}).slice(0,15);
+  var total=late.length+todayList.length;
+  document.getElementById('nb-r').textContent=total;
+  document.getElementById('relances-sub').textContent=total+' relance'+(total>1?'s':'')+' aujourd\'hui'+(late.length?' dont '+late.length+' en retard':'');
+
+  function makeCard(call,overdue){
+    var co=call.companyId?S.companies.find(function(x){return x.id===call.companyId;}):null;
+    var name=call.contact||call.company||'—';
+    var phone=co?co.phone:call.phone;
+    return'<div class="relance-card'+(overdue?' relance-overdue':'')+'" onclick="'+(co?'launchCall(\''+co.id+'\')':'')+'">'+
+      '<div style="width:36px;height:36px;border-radius:9px;background:'+(overdue?'var(--red-l)':'var(--gold-l)')+';display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0">'+(overdue?'⚡':'🔁')+'</div>'+
+      '<div style="flex:1;min-width:0">'+
+        '<div style="font-weight:700;font-size:14px;margin-bottom:1px">'+name+'</div>'+
+        '<div style="font-size:12px;color:var(--ink3)">'+(co?co.name+' · ':'')+fmtDate(call.followup)+'</div>'+
+        (call.notes?'<div style="font-size:11px;color:var(--ink2);margin-top:3px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis">💬 '+call.notes+'</div>':'')+
+      '</div>'+
+      (phone?'<div style="font-size:11px;color:var(--acc);font-weight:600;flex-shrink:0">📞</div>':'')+
+    '</div>';
+  }
+
+  var ls=document.getElementById('relances-late-section');
+  var ts=document.getElementById('relances-today-section');
+  var us=document.getElementById('relances-upcoming-section');
+  ls.innerHTML=late.length?'<div style="font-size:11px;font-weight:700;color:var(--red);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">⚡ En retard ('+late.length+')</div>'+late.map(function(c){return makeCard(c,true);}).join(''):'';
+  ts.innerHTML=todayList.length?'<div style="font-size:11px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🔁 Aujourd\'hui ('+todayList.length+')</div>'+todayList.map(function(c){return makeCard(c,false);}).join(''):'';
+  us.innerHTML=upcoming.length?'<div style="font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;margin-top:4px">📅 À venir</div>'+upcoming.map(function(c){return makeCard(c,false);}).join(''):'';
+  if(!total&&!upcoming.length)ts.innerHTML='<div class="empty"><div class="empty-ico">✓</div><div style="font-weight:700;color:var(--green)">Aucune relance en attente !</div></div>';
+}
+
+// STATS VIEW
+function renderStats(){
+  var today=toDateStr(new Date());
+  var calls=S.calls;
+  var tot=calls.length;
+  var done=calls.filter(function(c){return c.status==='Effectué';}).length;
+  var rdvCount=S.rdvs.length;
+  var conv=tot?Math.round(rdvCount/tot*100):0;
+  var clot=calls.filter(function(c){return c.status==='Clôturé';}).length;
+  var pend=calls.filter(function(c){return c.status==='En attente';}).length;
+
+  // KPI
+  document.getElementById('stats-kpi').innerHTML=[
+    {ico:'📞',val:tot,lbl:'Appels total',c:'var(--acc)'},
+    {ico:'📅',val:rdvCount,lbl:'RDV pris',c:'var(--green)'},
+    {ico:'📈',val:conv+'%',lbl:'Taux RDV/appels',c:'var(--gold)'},
+    {ico:'🔁',val:pend,lbl:'En attente',c:'var(--red)'}
+  ].map(function(i){return'<div class="kpi" style="--c:'+i.c+'"><div class="kpi-lbl">'+i.lbl+'</div><div class="kpi-val">'+i.val+'</div></div>';}).join('');
+
+  // Conversion funnel
+  document.getElementById('stats-conversion').innerHTML=[
+    {lbl:'Prospects total',val:S.companies.length,max:S.companies.length,col:'#60a5fa'},
+    {lbl:'Appelés',val:done,max:S.companies.length,col:'var(--acc)'},
+    {lbl:'RDV obtenus',val:rdvCount,max:Math.max(done,1),col:'var(--green)'},
+    {lbl:'Pas intéressés',val:clot,max:Math.max(tot,1),col:'#94a3b8'},
+  ].map(function(r){var pct=Math.round(r.val/r.max*100)||0;return'<div class="stat-bar-row"><div class="stat-bar-lbl">'+r.lbl+'</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:'+pct+'%;background:'+r.col+'"></div></div><div class="stat-bar-val">'+r.val+'</div></div>';}).join('');
+
+  // Top sectors
+  var sectors={};
+  calls.forEach(function(c){var co=c.companyId?S.companies.find(function(x){return x.id===c.companyId;}):null;var sec=(co&&co.sector)||'Autre';sectors[sec]=(sectors[sec]||0)+1;});
+  var topSec=Object.keys(sectors).sort(function(a,b){return sectors[b]-sectors[a];}).slice(0,8);
+  var maxSec=topSec.length?sectors[topSec[0]]:1;
+  document.getElementById('stats-sectors').innerHTML=topSec.length?topSec.map(function(s){var pct=Math.round(sectors[s]/maxSec*100);return'<div class="stat-bar-row"><div class="stat-bar-lbl">'+s+'</div><div class="stat-bar-track"><div class="stat-bar-fill" style="width:'+pct+'%;background:var(--acc)"></div></div><div class="stat-bar-val">'+sectors[s]+'</div></div>';}).join(''):'<div style="color:var(--ink3);font-size:13px;padding:8px 0">Aucun appel enregistré</div>';
+
+  // Last 7 days activity
+  var days7=[];for(var i=6;i>=0;i--){var d=new Date();d.setDate(d.getDate()-i);days7.push(toDateStr(d));}
+  var maxDay=1;
+  var dayCounts=days7.map(function(ds){var n=calls.filter(function(c){return c.date&&c.date.slice(0,10)===ds;}).length;if(n>maxDay)maxDay=n;return{ds:ds,n:n};});
+  document.getElementById('stats-daily').innerHTML='<div style="display:flex;align-items:flex-end;gap:6px;height:80px;margin-top:8px">'+dayCounts.map(function(d){var h=maxDay?Math.max(Math.round(d.n/maxDay*72),d.n?4:0):0;var isToday=d.ds===today;return'<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">'+
+    '<div style="font-size:10px;color:var(--ink3);font-family:\'Geist Mono\',monospace">'+d.n+'</div>'+
+    '<div style="width:100%;height:'+h+'px;background:'+(isToday?'var(--acc)':'var(--acc-m)')+';border-radius:4px 4px 0 0;min-height:'+(d.n?4:0)+'px"></div>'+
+    '<div style="font-size:9px;color:'+(isToday?'var(--acc)':'var(--ink3)')+';font-weight:'+(isToday?'700':'400')+'">'+new Date(d.ds+'T12:00:00').toLocaleDateString('fr-FR',{weekday:'short'}).slice(0,3)+'</div>'+
+  '</div>';}).join('')+'</div>';
+}
+
 // INIT
-renderFolders();renderProspects();updateHdr();
+renderFolders();renderProspects();updateHdr();renderRelances();
+// Restaurer dernière vue
+var lastV=localStorage.getItem('last_view');
+if(lastV&&document.getElementById('view-'+lastV)){navTo(lastV);}
 if(localStorage.getItem('notif_enabled')&&typeof Notification!=='undefined'&&Notification.permission==='granted')startNotifScheduler();
 setTimeout(function(){if(localStorage.getItem('gist_token'))gistSync();},2000);
 </script>
