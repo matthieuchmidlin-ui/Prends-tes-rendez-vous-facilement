@@ -868,6 +868,34 @@ Cordialement,
         </div>
         <input type="file" id="backup-inp" accept=".json" style="display:none" onchange="handleBackupFile(event)">
       </div>
+
+      <!-- Export tableur -->
+      <div class="card">
+        <div class="card-title">📊 Exporter en tableur</div>
+        <div style="font-size:13px;color:var(--ink2);margin-bottom:14px;line-height:1.6">
+          Exporte tous vos prospects, appels et RDV dans un fichier compatible <b>Excel</b> et <b>Numbers</b>.
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn bp" style="flex:1;justify-content:center" onclick="exportSpreadsheet('csv')">
+            📊 Export CSV (Excel)
+          </button>
+          <button class="btn bg" style="flex:1;justify-content:center" onclick="exportSpreadsheet('tsv')">
+            📋 Export TSV (Numbers)
+          </button>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="card">
+        <div class="card-title">🔔 Notifications de relance</div>
+        <div style="font-size:13px;color:var(--ink2);margin-bottom:14px;line-height:1.6">
+          Recevez une notification au moment de chaque relance planifiée et 30 min avant chaque RDV.
+        </div>
+        <div id="notif-status" style="font-size:12px;color:var(--ink3);margin-bottom:12px"></div>
+        <button class="btn bp" style="width:100%;justify-content:center" onclick="requestNotifPermission()" id="btn-notif">
+          🔔 Activer les notifications
+        </button>
+      </div>
     </div>
 
   </main>
@@ -1133,14 +1161,34 @@ function deleteCo(id) {
 function renderProspects() {
   var q=(document.getElementById('p-srch')?document.getElementById('p-srch').value:'').toLowerCase();
   var tf=document.getElementById('p-filt')?document.getElementById('p-filt').value:'';
-  var list=S.companies.filter(function(c){
-    return (S.curFolder==='all'||c.folderId===S.curFolder) &&
-      (!q||(c.name+' '+(c.contact||'')+' '+(c.phone||'')+' '+(c.addr||'')).toLowerCase().includes(q)) &&
-      (!tf||c.temp===tf);
+
+  // Quand recherche active : montrer TOUTES les fiches du dossier, surligner la trouvée
+  var allList = S.companies.filter(function(c){
+    return (S.curFolder==='all'||c.folderId===S.curFolder) && (!tf||c.temp===tf);
   });
+  var list = q ? allList : allList; // toujours toutes
+  var matchIds = {};
+  if (q) {
+    allList.forEach(function(c){
+      if ((c.name+' '+(c.contact||'')+' '+(c.phone||'')+' '+(c.addr||'')).toLowerCase().includes(q))
+        matchIds[c.id] = true;
+    });
+    // Si aucun match dans le dossier, chercher dans tous les dossiers
+    if (!Object.keys(matchIds).length) {
+      S.companies.forEach(function(c){
+        if ((c.name+' '+(c.contact||'')+' '+(c.phone||'')+' '+(c.addr||'')).toLowerCase().includes(q))
+          matchIds[c.id] = true;
+      });
+      list = S.companies.filter(function(c){ return matchIds[c.id]; });
+    }
+  }
+
   var f=S.folders.find(function(x){return x.id===S.curFolder});
   document.getElementById('fold-title').textContent=f?f.name:'Prospects';
-  document.getElementById('fold-sub').textContent=list.length+' fiche'+(list.length>1?'s':'');
+  var matchCount = q ? Object.keys(matchIds).length : list.length;
+  document.getElementById('fold-sub').textContent=
+    q ? matchCount+' résultat'+(matchCount>1?'s':'')+' sur '+allList.length+' fiches'
+      : list.length+' fiche'+(list.length>1?'s':'');
   document.getElementById('nb-p').textContent=S.companies.length;
   var grid=document.getElementById('prospect-grid');
   if(!list.length){
@@ -1152,6 +1200,7 @@ function renderProspects() {
   var tb={hot:'b-hot',warm:'b-warm',cold:'b-cold'};
   var tl={hot:'🔥 Chaud',warm:'🌤 Tiède',cold:'❄️ Froid'};
   grid.innerHTML=list.map(function(c){
+    var isMatch = q && matchIds[c.id];
     var g=c.gerant;
     var gl=g&&g.nom?'<div class="ger-strip"><span>👤</span><span class="gn">'+g.nom+'</span><span class="gr">— '+(g.titre||'Dirigeant')+'</span><button class="rfbtn" onclick="event.stopPropagation();resetGer(\''+c.id+'\')">↻</button></div>':'';
     var pb=c.phone?'<button class="call-big" onclick="launchCall(\''+c.id+'\')"><span class="ring">📞</span> Appeler '+c.phone+'</button>':'';
@@ -1184,7 +1233,13 @@ function renderProspects() {
         '</div>';
     }
 
-    return '<div class="cc">'+
+    // Highlight border si c'est le résultat de la recherche
+    var cardStyle = isMatch
+      ? 'border:2px solid var(--acc);box-shadow:0 0 0 4px rgba(37,99,235,.1);'
+      : (q && !isMatch ? 'opacity:0.45;' : '');
+
+    return '<div class="cc" style="'+cardStyle+'">' +
+      (isMatch && q ? '<div style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🎯 Correspondance</div>' : '') +
       '<div class="cch">'+
         '<div class="ccav">'+(c.name[0]||'?').toUpperCase()+'</div>'+
         '<div style="flex:1;min-width:0"><div class="ccn">'+c.name+'</div><div class="ccm">'+(c.contact?c.contact+(c.sector?' · ':''): '')+(c.sector||'')+'</div></div>'+
@@ -1202,6 +1257,14 @@ function renderProspects() {
       '</div>'+
     '</div>';
   }).join('');
+
+  // Scroll to first match
+  if (q && Object.keys(matchIds).length) {
+    setTimeout(function(){
+      var firstMatch = grid.querySelector('[style*="border:2px solid"]');
+      if (firstMatch) firstMatch.scrollIntoView({ behavior:'smooth', block:'center' });
+    }, 50);
+  }
 }
 
 // ═══ GÉRANT SEARCH ═══
@@ -1925,6 +1988,19 @@ function renderBackupStats() {
   if (lastSync) {
     setSyncStatus('✅', 'Configuré', 'Dernière sync : ' + new Date(lastSync).toLocaleString('fr-FR'), false);
   }
+  // Notification status
+  var ns = document.getElementById('notif-status');
+  var nb = document.getElementById('btn-notif');
+  if (ns && typeof Notification !== 'undefined') {
+    if (Notification.permission === 'granted') {
+      ns.innerHTML = '<span style="color:var(--green);font-weight:600">✓ Notifications activées</span> — vous serez alerté pour chaque relance et RDV';
+      if (nb) nb.textContent = '🔔 Désactiver les notifications';
+    } else if (Notification.permission === 'denied') {
+      ns.innerHTML = '<span style="color:var(--red)">✕ Notifications bloquées</span> — activez-les dans Réglages → Safari → Notifications';
+    } else {
+      ns.textContent = 'Appuyez sur le bouton pour autoriser les notifications.';
+    }
+  }
   var el = document.getElementById('backup-stats');
   if (!el) return;
   var withGer = S.companies.filter(function(c){ return c.gerant && c.gerant.nom; }).length;
@@ -1979,8 +2055,171 @@ function readBackupFile(file) {
   reader.readAsText(file, 'UTF-8');
 }
 
+// ═══ EXPORT TABLEUR (CSV/Excel) ═══
+function exportSpreadsheet(type) {
+  var sep = type === 'csv' ? ',' : '\t';
+  var ext = type === 'csv' ? 'csv' : 'tsv';
+  var mime = 'text/csv;charset=utf-8';
+  var BOM = '\uFEFF'; // pour Excel UTF-8
+
+  // Feuille 1 : Prospects
+  var prosp = [['Entreprise','Contact','Téléphone','Email','Adresse','Secteur','Température','Gérant','Titre Gérant','Dossier','Statut dernier appel','Date relance','Notes dernier appel'].join(sep)];
+  S.companies.forEach(function(c){
+    var lastCall = S.calls.filter(function(cl){return cl.companyId===c.id;}).sort(function(a,b){return(b.date||'').localeCompare(a.date||'');})[0];
+    var folder = S.folders.find(function(f){return f.id===c.folderId;});
+    var temps = {hot:'Chaud',warm:'Tiède',cold:'Froid'};
+    prosp.push([
+      csvEsc(c.name,sep), csvEsc(c.contact||'',sep), csvEsc(c.phone||'',sep),
+      csvEsc(c.email||'',sep), csvEsc(c.addr||'',sep), csvEsc(c.sector||'',sep),
+      csvEsc(temps[c.temp]||'',sep),
+      csvEsc(c.gerant&&c.gerant.nom?c.gerant.nom:'',sep),
+      csvEsc(c.gerant&&c.gerant.titre?c.gerant.titre:'',sep),
+      csvEsc(folder?folder.name:'',sep),
+      csvEsc(lastCall?lastCall.status:'',sep),
+      csvEsc(lastCall&&lastCall.followup?lastCall.followup:'',sep),
+      csvEsc(lastCall&&lastCall.notes?lastCall.notes:'',sep)
+    ].join(sep));
+  });
+
+  // Feuille 2 : Appels (dans le même fichier, séparée par ligne vide)
+  var calls = ['','','HISTORIQUE DES APPELS','',
+    ['Contact','Entreprise','Téléphone','Date','Statut','Raison','Notes','Date relance','RDV'].join(sep)];
+  S.calls.forEach(function(c){
+    var rdv = c.rdvId ? S.rdvs.find(function(r){return r.id===c.rdvId;}) : null;
+    calls.push([
+      csvEsc(c.contact||'',sep), csvEsc(c.company||'',sep), csvEsc(c.phone||'',sep),
+      csvEsc(c.date?new Date(c.date).toLocaleString('fr-FR'):'',sep),
+      csvEsc(c.status||'',sep), csvEsc(c.reason||'',sep),
+      csvEsc(c.notes||'',sep), csvEsc(c.followup||'',sep),
+      csvEsc(rdv?(fmtDate(rdv.date)+' à '+rdv.time):'',sep)
+    ].join(sep));
+  });
+
+  // Feuille 3 : RDV
+  var rdvs = ['','','RENDEZ-VOUS','',
+    ['Contact','Entreprise','Date','Heure','Adresse','Email','Notes','Statut'].join(sep)];
+  S.rdvs.forEach(function(r){
+    rdvs.push([
+      csvEsc(r.contact||'',sep), csvEsc(r.company||'',sep),
+      csvEsc(fmtDate(r.date),sep), csvEsc(r.time||'',sep),
+      csvEsc(r.addr||'',sep), csvEsc(r.email||'',sep),
+      csvEsc(r.notes||'',sep), csvEsc(r.status||'',sep)
+    ].join(sep));
+  });
+
+  var content = BOM + prosp.join('\n') + '\n' + calls.join('\n') + '\n' + rdvs.join('\n');
+  var blob = new Blob([content], { type: mime });
+  var url = URL.createObjectURL(blob);
+  var d = new Date();
+  var ds = d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  var a = document.createElement('a');
+  a.href = url; a.download = 'commercial-pro-export-'+ds+'.'+ext;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+  toast('Export téléchargé ✓ — ouvrir avec Excel ou Numbers', 'ok');
+}
+
+function csvEsc(val, sep) {
+  var s = String(val || '').replace(/"/g,'""');
+  if (s.includes(sep) || s.includes('"') || s.includes('\n')) s = '"'+s+'"';
+  return s;
+}
+
+// ═══ NOTIFICATIONS PUSH (relances) ═══
+var notifTimer = null;
+
+function requestNotifPermission() {
+  if (!('Notification' in window)) { toast('Notifications non supportées sur ce navigateur', 'err'); return; }
+  Notification.requestPermission().then(function(perm){
+    if (perm === 'granted') {
+      toast('✓ Notifications activées ! Vous serez rappelé pour vos relances.', 'ok');
+      localStorage.setItem('notif_enabled', '1');
+      startNotifScheduler();
+    } else {
+      toast('Notifications refusées — activez-les dans les réglages Safari', 'err');
+    }
+  });
+}
+
+function startNotifScheduler() {
+  if (notifTimer) clearInterval(notifTimer);
+  checkFollowUps(); // vérifier immédiatement
+  notifTimer = setInterval(checkFollowUps, 60000); // vérifier chaque minute
+}
+
+function checkFollowUps() {
+  if (Notification.permission !== 'granted') return;
+  var now = new Date();
+  var todayStr = toDateStr(now);
+  var nowH = now.getHours();
+  var nowM = now.getMinutes();
+
+  S.calls.forEach(function(call) {
+    if (!call.followup) return;
+    if (call.status === 'Clôturé' || call.status === 'Effectué') return;
+    var notifKey = 'notif_' + call.id + '_' + call.followup;
+    if (localStorage.getItem(notifKey)) return; // déjà envoyé
+
+    var fu = new Date(call.followup + 'T00:00:00');
+    var fuStr = toDateStr(fu);
+
+    // Notifier le jour J à 9h00 et rappel à l'heure exacte si 1h/2h
+    var shouldNotify = false;
+    if (fuStr === todayStr && nowH === 9 && nowM === 0) shouldNotify = true;
+    // Pour relances intra-journée (aujourd'hui à une heure précise stockée)
+    if (call.followupTime) {
+      var parts = call.followupTime.split(':');
+      if (fuStr === todayStr && nowH === parseInt(parts[0]) && nowM === parseInt(parts[1])) shouldNotify = true;
+    }
+    // Notif aussi si date dépassée et pas encore envoyé
+    if (fuStr < todayStr) shouldNotify = true;
+
+    if (shouldNotify) {
+      var co = call.companyId ? S.companies.find(function(x){return x.id===call.companyId;}) : null;
+      var name = call.contact || call.company || 'Prospect';
+      var title = '📞 Relance — ' + name;
+      var body = (co ? co.name + '\n' : '') +
+        (co && co.phone ? '📱 ' + co.phone + '\n' : '') +
+        (call.notes ? '💬 ' + call.notes.slice(0,80) : '') +
+        (fuStr < todayStr ? '\n⚠ Relance en retard !' : '');
+      var n = new Notification(title, {
+        body: body,
+        icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="12" fill="%232563eb"/><text y="44" x="32" text-anchor="middle" font-size="36" fill="white">C</text></svg>',
+        tag: notifKey,
+        requireInteraction: true
+      });
+      n.onclick = function(){ window.focus(); navTo('calls'); n.close(); };
+      localStorage.setItem(notifKey, '1');
+    }
+  });
+
+  // RDV du jour
+  var todayRdvs = S.rdvs.filter(function(r){ return r.date === todayStr; });
+  todayRdvs.forEach(function(r){
+    if (!r.time) return;
+    var parts = r.time.split(':');
+    var rdvH = parseInt(parts[0]), rdvM = parseInt(parts[1]);
+    // Notif 30 min avant
+    var notifH = rdvH, notifM = rdvM - 30;
+    if (notifM < 0) { notifM += 60; notifH--; }
+    var notifKey = 'notif_rdv_' + r.id;
+    if (!localStorage.getItem(notifKey) && nowH === notifH && nowM === notifM) {
+      new Notification('📅 RDV dans 30 min — ' + (r.contact||r.company), {
+        body: '🕐 ' + r.time + '\n📍 ' + (r.addr||'') + (r.notes?'\n'+r.notes:''),
+        tag: notifKey,
+        requireInteraction: true
+      });
+      localStorage.setItem(notifKey, '1');
+    }
+  });
+}
+
 // ═══ INIT ═══
 renderFolders();renderProspects();updateHdr();
+// Démarrer scheduler notifs si déjà autorisé
+if (localStorage.getItem('notif_enabled') && typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+  startNotifScheduler();
+}
 // Auto-sync on load if configured
 setTimeout(function(){
   var u = localStorage.getItem('icl_user');
