@@ -13,6 +13,45 @@
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%}
 body{background:var(--bg);color:var(--ink);font-family:'Geist',sans-serif;display:flex;flex-direction:column;overflow:hidden;padding-top:var(--sat)}
+/* PROFILE SCREEN */
+#profile-screen{position:fixed;inset:0;background:var(--bg);z-index:2000;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px 20px;gap:0}
+#profile-screen.hidden{display:none}
+.ps-logo{font-family:'Fraunces',serif;font-size:32px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:10px}
+.ps-logo-dot{width:40px;height:40px;background:var(--acc);border-radius:11px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;font-weight:700}
+.ps-sub{font-size:14px;color:var(--ink3);margin-bottom:32px;text-align:center}
+.ps-grid{display:flex;flex-wrap:wrap;gap:12px;justify-content:center;max-width:500px;margin-bottom:24px}
+.ps-card{width:130px;background:var(--white);border:1.5px solid var(--border);border-radius:var(--r2);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;transition:all .15s;position:relative}
+.ps-card:hover,.ps-card:active{border-color:var(--acc);background:var(--acc-l);transform:translateY(-2px)}
+.ps-av{width:56px;height:56px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:24px;color:#fff;font-weight:700}
+.ps-name{font-weight:700;font-size:14px;text-align:center;line-height:1.2}
+.ps-stats{font-size:11px;color:var(--ink3);text-align:center}
+.ps-del{position:absolute;top:6px;right:6px;width:20px;height:20px;border-radius:6px;background:var(--red-l);color:var(--red);border:none;font-size:11px;cursor:pointer;display:none;align-items:center;justify-content:center}
+.ps-card:hover .ps-del,.ps-card:active .ps-del{display:flex}
+.ps-add{width:130px;background:var(--white);border:2px dashed var(--border);border-radius:var(--r2);padding:18px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;cursor:pointer;color:var(--ink3);transition:all .15s}
+.ps-add:hover{border-color:var(--acc);color:var(--acc);background:var(--acc-l)}
+.ps-add-ico{font-size:28px}
+.ps-add-lbl{font-size:13px;font-weight:600}
+/* PIN SCREEN */
+#pin-screen{position:fixed;inset:0;background:var(--bg);z-index:1999;display:none;flex-direction:column;align-items:center;justify-content:center;gap:0;padding:32px 20px}
+#pin-screen.show{display:flex}
+.pin-av{width:72px;height:72px;border-radius:18px;display:flex;align-items:center;justify-content:center;font-family:'Fraunces',serif;font-size:32px;color:#fff;font-weight:700;margin-bottom:14px}
+.pin-name{font-family:'Fraunces',serif;font-size:22px;font-weight:700;margin-bottom:4px}
+.pin-hint{font-size:13px;color:var(--ink3);margin-bottom:28px}
+.pin-dots{display:flex;gap:14px;margin-bottom:28px}
+.pin-dot{width:16px;height:16px;border-radius:50%;background:var(--border);transition:background .15s}
+.pin-dot.filled{background:var(--acc)}
+.pin-dot.error{background:var(--red)}
+.pin-pad{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;width:240px}
+.pin-btn{height:64px;border-radius:14px;background:var(--white);border:1px solid var(--border);font-family:'Fraunces',serif;font-size:22px;font-weight:700;color:var(--ink);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:all .1s;-webkit-appearance:none}
+.pin-btn:active{background:var(--acc-l);border-color:var(--acc);color:var(--acc);transform:scale(.95)}
+.pin-btn-sub{font-family:'Geist',sans-serif;font-size:8px;letter-spacing:1px;color:var(--ink3);font-weight:600}
+.pin-del{background:var(--bg);border-color:var(--border);font-size:18px}
+.pin-back{margin-top:18px;font-size:13px;color:var(--ink3);cursor:pointer;padding:8px 16px;border-radius:20px;border:1px solid var(--border);background:var(--white)}
+/* PROFILE BADGE IN TOPBAR */
+.profile-badge{display:flex;align-items:center;gap:7px;cursor:pointer;padding:4px 10px 4px 4px;border-radius:20px;border:1px solid var(--border);background:var(--white);transition:all .15s;flex-shrink:0}
+.profile-badge:hover{border-color:var(--acc);background:var(--acc-l)}
+.profile-badge-av{width:26px;height:26px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:12px;font-weight:700}
+.profile-badge-name{font-size:12px;font-weight:600;color:var(--ink2)}
 .topbar{background:var(--white);border-bottom:1px solid var(--border);height:52px;display:flex;align-items:center;padding:0 16px;gap:10px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.06)}
 .logo{font-family:'Fraunces',serif;font-size:18px;font-weight:700;display:flex;align-items:center;gap:8px}
 .logo-dot{width:26px;height:26px;background:var(--acc);border-radius:7px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700}
@@ -211,8 +250,77 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
 </style>
 </head>
 <body>
+<!-- PROFILE SELECTION SCREEN -->
+<div id="profile-screen">
+  <div class="ps-logo"><div class="ps-logo-dot">C</div>Commercial Pro</div>
+  <div class="ps-sub">Sélectionnez votre profil</div>
+  <div class="ps-grid" id="ps-grid"></div>
+  <div style="font-size:11px;color:var(--ink3);text-align:center;max-width:300px">
+    Chaque profil a ses propres données et sa propre synchronisation GitHub Gist
+  </div>
+</div>
+
+<!-- PIN SCREEN -->
+<div id="pin-screen">
+  <div class="pin-av" id="pin-av"></div>
+  <div class="pin-name" id="pin-name"></div>
+  <div class="pin-hint" id="pin-hint">Entrez votre code PIN</div>
+  <div class="pin-dots">
+    <div class="pin-dot" id="pd0"></div>
+    <div class="pin-dot" id="pd1"></div>
+    <div class="pin-dot" id="pd2"></div>
+    <div class="pin-dot" id="pd3"></div>
+  </div>
+  <div class="pin-pad">
+    <button class="pin-btn" onclick="pinPress('1')">1<span class="pin-btn-sub"></span></button>
+    <button class="pin-btn" onclick="pinPress('2')">2<span class="pin-btn-sub">ABC</span></button>
+    <button class="pin-btn" onclick="pinPress('3')">3<span class="pin-btn-sub">DEF</span></button>
+    <button class="pin-btn" onclick="pinPress('4')">4<span class="pin-btn-sub">GHI</span></button>
+    <button class="pin-btn" onclick="pinPress('5')">5<span class="pin-btn-sub">JKL</span></button>
+    <button class="pin-btn" onclick="pinPress('6')">6<span class="pin-btn-sub">MNO</span></button>
+    <button class="pin-btn" onclick="pinPress('7')">7<span class="pin-btn-sub">PQRS</span></button>
+    <button class="pin-btn" onclick="pinPress('8')">8<span class="pin-btn-sub">TUV</span></button>
+    <button class="pin-btn" onclick="pinPress('9')">9<span class="pin-btn-sub">WXYZ</span></button>
+    <div></div>
+    <button class="pin-btn" onclick="pinPress('0')">0</button>
+    <button class="pin-btn pin-del" onclick="pinDel()">⌫</button>
+  </div>
+  <div class="pin-back" onclick="pinCancel()">← Changer de profil</div>
+</div>
+
+<!-- ADD PROFILE MODAL -->
+<div class="overlay" id="ov-profile" onclick="ovBg(event,'ov-profile')"><div class="modal" style="max-width:400px">
+  <div class="mh"><div class="mt" id="pm-title">Nouveau profil</div><button class="mc" onclick="closeM('ov-profile')">✕</button></div>
+  <div class="mb">
+    <div class="fg"><label>Prénom / Nom *</label><input id="pm-name" placeholder="Ex: Matthieu Martin"></div>
+    <div class="fg"><label>Code PIN (4 chiffres) *</label>
+      <input id="pm-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="• • • •" style="letter-spacing:8px;font-size:22px;text-align:center">
+      <div style="font-size:11px;color:var(--ink3);margin-top:4px">Requis pour accéder à ce profil</div>
+    </div>
+    <div class="fg"><label>Couleur</label>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="pm-colors">
+        <div data-c="#2563eb" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#2563eb;cursor:pointer;border:3px solid #2563eb"></div>
+        <div data-c="#16a34a" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#16a34a;cursor:pointer;border:3px solid transparent"></div>
+        <div data-c="#dc2626" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#dc2626;cursor:pointer;border:3px solid transparent"></div>
+        <div data-c="#b45309" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#b45309;cursor:pointer;border:3px solid transparent"></div>
+        <div data-c="#7c3aed" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#7c3aed;cursor:pointer;border:3px solid transparent"></div>
+        <div data-c="#0891b2" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#0891b2;cursor:pointer;border:3px solid transparent"></div>
+        <div data-c="#be185d" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#be185d;cursor:pointer;border:3px solid transparent"></div>
+        <div data-c="#475569" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#475569;cursor:pointer;border:3px solid transparent"></div>
+      </div>
+    </div>
+    <div style="background:var(--gold-l);border:1px solid #fcd34d;border-radius:var(--r);padding:11px 13px;font-size:12px;color:var(--gold);line-height:1.7;margin-bottom:12px">
+      <b>Sync GitHub Gist (optionnel) :</b><br>
+      Chaque profil peut avoir son propre token GitHub pour synchroniser ses données indépendamment.
+    </div>
+    <div class="fg"><label>Token GitHub (Personal Access Token)</label><input id="pm-token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div>
+    <div class="mact"><button class="btn bg" onclick="closeM('ov-profile')">Annuler</button><button class="btn bp" onclick="saveProfile()">Créer le profil</button></div>
+  </div>
+</div></div>
+
 <div class="topbar">
   <div class="logo"><div class="logo-dot">C</div>Commercial Pro</div>
+  <div id="profile-badge-wrap" style="margin-left:6px"></div>
   <div class="tpills"><div class="tpill">Appels <b id="h-total">0</b></div><div class="tpill">RDV <b id="h-rdv">0</b></div></div>
 </div>
 <div class="folder-bar" id="folder-bar"></div>
@@ -515,18 +623,196 @@ Cordialement,
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <script>
-// STATE
-var S=JSON.parse(localStorage.getItem('cp5')||'null')||{folders:[{id:'all',name:'Tous',icon:'🏢'}],curFolder:'all',companies:[],calls:[],rdvs:[],tpl:{sender:'',subject:'Confirmation de votre rendez-vous',body:'Bonjour {NOM},\n\nJe vous confirme notre rendez-vous le {DATE} à {HEURE}.\n\nAdresse : {ADRESSE}\n\nCordialement,\n{SIGNATURE}'}};
+// ══════════════════════════════════════
+//  MULTI-PROFILS
+// ══════════════════════════════════════
+var PROFILES_KEY = 'cp_profiles';
+var CURRENT_KEY  = 'cp_current';
+
+function getProfiles(){try{return JSON.parse(localStorage.getItem(PROFILES_KEY)||'[]');}catch(e){return[];}}
+function saveProfiles(p){localStorage.setItem(PROFILES_KEY,JSON.stringify(p));}
+function getCurrentPid(){return localStorage.getItem(CURRENT_KEY)||'';}
+function setCurrentPid(pid){localStorage.setItem(CURRENT_KEY,pid);}
+function profileKey(pid){return 'cp5_'+pid;}
+function profileToken(pid){return localStorage.getItem('gist_token_'+pid)||'';}
+function profileGistId(pid){return localStorage.getItem('gist_id_'+pid)||'';}
+function profileLastSync(pid){return localStorage.getItem('gist_sync_'+pid)||'';}
+function setProfileToken(pid,v){localStorage.setItem('gist_token_'+pid,v);}
+function setProfileGistId(pid,v){localStorage.setItem('gist_id_'+pid,v);}
+function setProfileLastSync(pid,v){localStorage.setItem('gist_sync_'+pid,v);}
+
+var currentPid=getCurrentPid();
+
+function emptyState(){return{folders:[{id:'all',name:'Tous',icon:'🏢'}],curFolder:'all',companies:[],calls:[],rdvs:[],tpl:{sender:'',subject:'Confirmation de votre rendez-vous',body:'Bonjour {NOM},\n\nJe vous confirme notre rendez-vous le {DATE} à {HEURE}.\n\nAdresse : {ADRESSE}\n\nCordialement,\n{SIGNATURE}'}};}
+function loadState(pid){var raw=localStorage.getItem(pid?profileKey(pid):'cp5');if(raw){try{return JSON.parse(raw);}catch(e){}}return emptyState();}
+
+var S=loadState(currentPid);
 var curRdv=null,editCoId=null,pendCoId=null,postCallId=null,rdvSel=null,fuSelected=null,impBuffer=[],gistSyncing=false;
 var _gistSyncTimer=null;
 function save(){
-  localStorage.setItem('cp5',JSON.stringify(S));
-  // Sync GitHub Gist en arrière-plan 10s après la dernière modif
-  if(localStorage.getItem('gist_token')){
-    clearTimeout(_gistSyncTimer);
-    _gistSyncTimer=setTimeout(function(){gistSync();},10000);
+  localStorage.setItem(currentPid?profileKey(currentPid):'cp5',JSON.stringify(S));
+  if(profileToken(currentPid)){clearTimeout(_gistSyncTimer);_gistSyncTimer=setTimeout(function(){gistSync();},10000);}
+}
+
+// Profile UI
+var selectedColor='#2563eb';
+function selectColor(el){document.querySelectorAll('#pm-colors div').forEach(function(d){d.style.border='3px solid transparent';});el.style.border='3px solid '+el.dataset.c;selectedColor=el.dataset.c;}
+
+function renderProfileScreen(){
+  var profiles=getProfiles();
+  var grid=document.getElementById('ps-grid');if(!grid)return;
+  grid.innerHTML=profiles.map(function(p){
+    var data=loadState(p.id);
+    var calls=data.calls?data.calls.length:0,rdvs=data.rdvs?data.rdvs.length:0;
+    var syncLabel=profileToken(p.id)?'☁️ Sync actif':'📱 Local';
+    var hasPin=!!localStorage.getItem('pin_'+p.id);
+    return'<div class="ps-card" onclick="trySelectProfile(\u0027'+p.id+'\u0027)">'+'<button class="ps-del" onclick="event.stopPropagation();deleteProfile(\u0027'+p.id+'\u0027)">✕</button>'+'<div class="ps-av" style="background:'+p.color+'">'+p.name.charAt(0).toUpperCase()+'</div>'+'<div class="ps-name">'+p.name+(hasPin?' 🔒':'')+'</div>'+'<div class="ps-stats">'+calls+' appels · '+rdvs+' RDV<br>'+syncLabel+'</div>'+'</div>';
+  }).join('')+'<div class="ps-add" onclick="openAddProfile()"><div class="ps-add-ico">+</div><div class="ps-add-lbl">Nouveau profil</div></div>';
+}
+
+function trySelectProfile(pid){
+  var pin=profilePin(pid);
+  if(pin){
+    // Hide profile screen, show PIN
+    document.getElementById('profile-screen').classList.add('hidden');
+    showPinScreen(pid);
+  } else {
+    selectProfile(pid);
   }
 }
+
+
+function saveProfile(){
+  var name=document.getElementById('pm-name').value.trim();if(!name){toast('Prénom requis','err');return;}
+  var pin=document.getElementById('pm-pin').value.trim();
+  if(!pin||pin.length!==4||!/^\d{4}$/.test(pin)){toast('PIN 4 chiffres requis','err');return;}
+  var token=document.getElementById('pm-token').value.trim();
+  var pid='p'+Date.now();
+  var profiles=getProfiles();profiles.push({id:pid,name:name,color:selectedColor});saveProfiles(profiles);
+  // Store PIN as simple hash (not security-critical, just privacy)
+  localStorage.setItem('pin_'+pid, btoa(pin));
+  if(token)setProfileToken(pid,token);
+  closeM('ov-profile');selectProfile(pid);
+}
+
+function profilePin(pid){ var h=localStorage.getItem('pin_'+pid); try{ return h?atob(h):''; }catch(e){return '';} }
+
+// ── PIN Screen ──
+var pinTarget='', pinEntry='', pinAttempts=0;
+
+function showPinScreen(pid){
+  var profiles=getProfiles();
+  var p=profiles.find(function(x){return x.id===pid;});
+  if(!p)return;
+  pinTarget=pid; pinEntry=''; pinAttempts=0;
+  document.getElementById('pin-av').style.background=p.color;
+  document.getElementById('pin-av').textContent=p.name.charAt(0).toUpperCase();
+  document.getElementById('pin-name').textContent=p.name;
+  document.getElementById('pin-hint').textContent='Entrez votre code PIN';
+  updatePinDots();
+  document.getElementById('pin-screen').classList.add('show');
+}
+
+function pinPress(d){
+  if(pinEntry.length>=4)return;
+  pinEntry+=d;
+  updatePinDots();
+  if(pinEntry.length===4) setTimeout(checkPin,120);
+}
+
+function pinDel(){
+  pinEntry=pinEntry.slice(0,-1);
+  updatePinDots();
+}
+
+function updatePinDots(){
+  for(var i=0;i<4;i++){
+    var dot=document.getElementById('pd'+i);
+    dot.className='pin-dot'+(i<pinEntry.length?' filled':'');
+  }
+}
+
+function checkPin(){
+  var stored=profilePin(pinTarget);
+  if(pinEntry===stored){
+    document.getElementById('pin-screen').classList.remove('show');
+    selectProfile(pinTarget);
+  } else {
+    pinAttempts++;
+    // Flash red
+    for(var i=0;i<4;i++) document.getElementById('pd'+i).className='pin-dot error';
+    setTimeout(function(){
+      pinEntry='';
+      updatePinDots();
+      document.getElementById('pin-hint').textContent=
+        pinAttempts>=3?'Code incorrect ('+pinAttempts+' tentatives)':'Code incorrect, réessayez';
+    },500);
+  }
+}
+
+function pinCancel(){
+  document.getElementById('pin-screen').classList.remove('show');
+  renderProfileScreen();
+  document.getElementById('profile-screen').classList.remove('hidden');
+}
+
+function openAddProfile(){
+  document.getElementById('pm-name').value='';
+  document.getElementById('pm-pin').value='';
+  document.getElementById('pm-token').value='';
+  selectedColor='#2563eb';
+  document.querySelectorAll('#pm-colors div').forEach(function(d,i){d.style.border=i===0?'3px solid #2563eb':'3px solid transparent';});
+  openM('ov-profile');
+}
+
+function deleteProfile(pid){
+  var profiles=getProfiles();var p=profiles.find(function(x){return x.id===pid;});if(!p)return;
+  if(!confirm('Supprimer "'+p.name+'" ?\nDonnées locales effacées.'))return;
+  ['cp5_'+pid,'gist_token_'+pid,'gist_id_'+pid,'gist_sync_'+pid].forEach(function(k){localStorage.removeItem(k);});
+  saveProfiles(profiles.filter(function(x){return x.id!==pid;}));
+  renderProfileScreen();
+}
+
+function selectProfile(pid){
+  setCurrentPid(pid);currentPid=pid;S=loadState(pid);
+  document.getElementById('profile-screen').classList.add('hidden');
+  renderProfileBadge();renderFolders();renderProspects();updateHdr();renderRelances();
+  var lv=localStorage.getItem('last_view_'+pid);
+  if(lv&&document.getElementById('view-'+lv))navTo(lv);else navTo('prospects');
+  if(profileToken(pid))setTimeout(gistSync,1500);
+}
+
+function renderProfileBadge(){
+  var wrap=document.getElementById('profile-badge-wrap');if(!wrap)return;
+  var profiles=getProfiles();var p=profiles.find(function(x){return x.id===currentPid;});
+  if(!p){wrap.innerHTML='';return;}
+  wrap.innerHTML='<div class="profile-badge" onclick="showProfileSwitch()" title="Changer de profil"><div class="profile-badge-av" style="background:'+p.color+'">'+p.name.charAt(0).toUpperCase()+'</div><span class="profile-badge-name">'+p.name+'</span><span style="font-size:9px;color:var(--ink3)">▼</span></div>';
+}
+
+function showProfileSwitch(){save();renderProfileScreen();document.getElementById('profile-screen').classList.remove('hidden');}
+
+function initApp(){
+  var profiles=getProfiles();
+  if(!profiles.length){
+    var hasData=localStorage.getItem('cp5');
+    if(hasData){
+      var pid='p_default';profiles=[{id:pid,name:'Mon profil',color:'#2563eb'}];saveProfiles(profiles);
+      localStorage.setItem(profileKey(pid),hasData);
+      var ot=localStorage.getItem('gist_token'),og=localStorage.getItem('gist_id');
+      if(ot)setProfileToken(pid,ot);if(og)setProfileGistId(pid,og);
+      selectProfile(pid);
+    } else {renderProfileScreen();}
+    return;
+  }
+  if(currentPid&&profiles.find(function(x){return x.id===currentPid;})){
+    document.getElementById('profile-screen').classList.add('hidden');
+    S=loadState(currentPid);renderProfileBadge();renderFolders();renderProspects();updateHdr();renderRelances();
+    var lv=localStorage.getItem('last_view_'+currentPid);
+    if(lv&&document.getElementById('view-'+lv))navTo(lv);
+    if(profileToken(currentPid))setTimeout(gistSync,1500);
+  } else {renderProfileScreen();}
+}
+
 function pad(n){return n<10?'0'+n:''+n;}
 function toDateStr(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function fmtTime(d){return pad(d.getHours())+'h'+pad(d.getMinutes());}
@@ -547,7 +833,7 @@ function navTo(v){document.querySelectorAll('.ni').forEach(function(n){n.classLi
 function switchView(v){
   // Sauvegarder position scroll avant de quitter
   var cur=document.querySelector('.view.active');
-  if(cur&&cur.id){var m=document.querySelector('main');if(m)localStorage.setItem('scroll_'+cur.id,m.scrollTop);}
+  if(cur&&cur.id){var m2=document.querySelector('main');if(m2)localStorage.setItem('scroll_'+currentPid+'_'+cur.id.replace('view-',''),m2.scrollTop);}
   document.querySelectorAll('.view').forEach(function(x){x.classList.remove('active');});
   document.getElementById('view-'+v).classList.add('active');
   if(v==='prospects')renderProspects();
@@ -560,9 +846,9 @@ function switchView(v){
   updateHdr();
   // Restaurer position scroll
   var m=document.querySelector('main');
-  if(m){var saved=localStorage.getItem('scroll_view-'+v);m.scrollTop=saved?parseInt(saved):0;}
+  if(m){var saved=localStorage.getItem('scroll_'+currentPid+'_'+v);m.scrollTop=saved?parseInt(saved):0;}
   // Sauvegarder vue courante
-  localStorage.setItem('last_view',v);
+  localStorage.setItem('last_view_'+currentPid,v);
 }
 
 // FOLDERS
@@ -751,16 +1037,16 @@ function ovBg(e,id){if(e.target===document.getElementById(id))closeM(id);}
 function toast(msg,type){var t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.innerHTML='<span>'+(type==='ok'?'✓':type==='err'?'⚠':'ℹ')+'</span> '+msg;document.getElementById('toast-wrap').appendChild(t);setTimeout(function(){t.style.opacity='0';t.style.transition='.3s';setTimeout(function(){t.remove();},350);},3000);}
 
 // GITHUB GIST SYNC
-function saveGistConfig(){var t=document.getElementById('gist-token'),i=document.getElementById('gist-id');if(t)localStorage.setItem('gist_token',t.value.trim());if(i)localStorage.setItem('gist_id',i.value.trim());}
-function loadGistConfig(){var t=document.getElementById('gist-token'),i=document.getElementById('gist-id');if(t)t.value=localStorage.getItem('gist_token')||'';if(i)i.value=localStorage.getItem('gist_id')||'';}
-function clearGistConfig(){['gist_token','gist_id','gist_last_sync'].forEach(function(k){localStorage.removeItem(k);});loadGistConfig();setSyncStatus('⚙️','Non configuré','Entrez votre token GitHub ci-dessous',false);toast('Configuration effacée','info');}
+function saveGistConfig(){var t=document.getElementById('gist-token'),i=document.getElementById('gist-id');if(t)setProfileToken(currentPid,t.value.trim());if(i)setProfileGistId(currentPid,i.value.trim());}
+function loadGistConfig(){var t=document.getElementById('gist-token'),i=document.getElementById('gist-id');if(t)t.value=profileToken(currentPid)||'';if(i)i.value=profileGistId(currentPid)||'';}
+function clearGistConfig(){['gist_token_'+currentPid,'gist_id_'+currentPid,'gist_sync_'+currentPid].forEach(function(k){localStorage.removeItem(k);});loadGistConfig();setSyncStatus('⚙️','Non configuré','Entrez votre token GitHub ci-dessous',false);toast('Configuration effacée','info');}
 function setSyncStatus(ico,title,sub,spin){var i=document.getElementById('sync-ico'),t=document.getElementById('sync-title'),s=document.getElementById('sync-sub'),sp=document.getElementById('sync-spin');if(i)i.textContent=ico;if(t)t.textContent=title;if(s)s.textContent=sub;if(sp)sp.style.display=spin?'block':'none';}
-async function gistSync(){var token=localStorage.getItem('gist_token');if(!token){toast('Entrez votre token GitHub dans Backup','err');navTo('backup');return;}if(gistSyncing)return;gistSyncing=true;setSyncStatus('🔄','Synchronisation…','GitHub Gist',true);try{var gistId=localStorage.getItem('gist_id')||'';var payload=JSON.stringify({version:2,syncedAt:new Date().toISOString(),data:S});var headers={'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};if(gistId){try{var getR=await fetch('https://api.github.com/gists/'+gistId,{headers:headers});if(getR.ok){var gist=await getR.json();var rc=gist.files&&gist.files['commercial-pro.json']&&gist.files['commercial-pro.json'].content;if(rc){var remote=JSON.parse(rc);var remoteTime=new Date(remote.syncedAt||0).getTime();var localTime=new Date(localStorage.getItem('gist_last_sync')||0).getTime();if(remoteTime>localTime+5000){if(confirm('Version plus récente sur GitHub ('+new Date(remote.syncedAt).toLocaleString('fr-FR')+').\nCharger depuis le cloud ?')){S=remote.data;save();renderFolders();renderProspects();updateHdr();localStorage.setItem('gist_last_sync',remote.syncedAt);setSyncStatus('✅','Données chargées','Sync: '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Données restaurées depuis GitHub','ok');gistSyncing=false;return;}}}}}catch(e){}var pR=await fetch('https://api.github.com/gists/'+gistId,{method:'PATCH',headers:headers,body:JSON.stringify({files:{'commercial-pro.json':{content:payload}}})});if(!pR.ok)throw new Error('PATCH '+pR.status);}else{var cR=await fetch('https://api.github.com/gists',{method:'POST',headers:headers,body:JSON.stringify({description:'Commercial Pro — Sauvegarde CRM',public:false,files:{'commercial-pro.json':{content:payload}}})});if(!cR.ok)throw new Error('CREATE '+cR.status);var created=await cR.json();gistId=created.id;localStorage.setItem('gist_id',gistId);var inp=document.getElementById('gist-id');if(inp)inp.value=gistId;}localStorage.setItem('gist_last_sync',new Date().toISOString());setSyncStatus('✅','Synchronisé ✓','Dernière sync : '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Sauvegardé sur GitHub Gist','ok');}catch(e){setSyncStatus('❌','Erreur',e.message,false);toast('Sync échouée : '+e.message,'err');}gistSyncing=false;}
-setInterval(function(){if(localStorage.getItem('gist_token')&&!gistSyncing&&document.visibilityState!=='hidden')gistSync();},5*60*1000);
-document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&localStorage.getItem('gist_token'))setTimeout(gistSync,1000);});
+async function gistSync(){var token=profileToken(currentPid);if(!token){toast('Entrez votre token GitHub dans Backup','err');navTo('backup');return;}if(gistSyncing)return;gistSyncing=true;setSyncStatus('🔄','Synchronisation…','GitHub Gist',true);try{var gistId=profileGistId(currentPid)||'';var payload=JSON.stringify({version:2,syncedAt:new Date().toISOString(),data:S});var headers={'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};if(gistId){try{var getR=await fetch('https://api.github.com/gists/'+gistId,{headers:headers});if(getR.ok){var gist=await getR.json();var rc=gist.files&&gist.files['commercial-pro.json']&&gist.files['commercial-pro.json'].content;if(rc){var remote=JSON.parse(rc);var remoteTime=new Date(remote.syncedAt||0).getTime();var localTime=new Date(localStorage.getItem('gist_last_sync')||0).getTime();if(remoteTime>localTime+5000){if(confirm('Version plus récente sur GitHub ('+new Date(remote.syncedAt).toLocaleString('fr-FR')+').\nCharger depuis le cloud ?')){S=remote.data;save();renderFolders();renderProspects();updateHdr();setProfileLastSync(currentPid,remote.syncedAt);setSyncStatus('✅','Données chargées','Sync: '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Données restaurées depuis GitHub','ok');gistSyncing=false;return;}}}}}catch(e){}var pR=await fetch('https://api.github.com/gists/'+gistId,{method:'PATCH',headers:headers,body:JSON.stringify({files:{'commercial-pro.json':{content:payload}}})});if(!pR.ok)throw new Error('PATCH '+pR.status);}else{var cR=await fetch('https://api.github.com/gists',{method:'POST',headers:headers,body:JSON.stringify({description:'Commercial Pro — Sauvegarde CRM',public:false,files:{'commercial-pro.json':{content:payload}}})});if(!cR.ok)throw new Error('CREATE '+cR.status);var created=await cR.json();gistId=created.id;setProfileGistId(currentPid,gistId);var inp=document.getElementById('gist-id');if(inp)inp.value=gistId;}setProfileLastSync(currentPid,new Date().toISOString());localStorage.setItem('gist_last_sync_'+currentPid,new Date().toISOString());setSyncStatus('✅','Synchronisé ✓','Dernière sync : '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Sauvegardé sur GitHub Gist','ok');}catch(e){setSyncStatus('❌','Erreur',e.message,false);toast('Sync échouée : '+e.message,'err');}gistSyncing=false;}
+setInterval(function(){if(profileToken(currentPid)&&!gistSyncing&&document.visibilityState!=='hidden')gistSync();},5*60*1000);
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&profileToken(currentPid))setTimeout(gistSync,1000);});
 
 // BACKUP
-function renderBackupStats(){loadGistConfig();var ls=localStorage.getItem('gist_last_sync');if(ls)setSyncStatus('✅','Configuré','Dernière sync : '+new Date(ls).toLocaleString('fr-FR'),false);else if(localStorage.getItem('gist_token'))setSyncStatus('⚙️','Token configuré','Cliquez Sync pour démarrer',false);var ns=document.getElementById('notif-status'),nb=document.getElementById('btn-notif');if(ns&&typeof Notification!=='undefined'){if(Notification.permission==='granted'){ns.innerHTML='<span style="color:var(--green);font-weight:600">✓ Notifications activées</span>';if(nb){nb.textContent='✓ Activé';nb.style.background='var(--green)';}}else if(Notification.permission==='denied'){ns.innerHTML='<span style="color:var(--red)">✕ Bloquées</span> — activez dans Réglages → Safari';}else{ns.textContent='Cliquez pour autoriser les notifications.';}}var el=document.getElementById('backup-stats');if(!el)return;var wg=S.companies.filter(function(c){return c.gerant&&c.gerant.nom;}).length;var items=[{ico:'🏢',val:S.companies.length,lbl:'Prospects'},{ico:'📞',val:S.calls.length,lbl:'Appels'},{ico:'📅',val:S.rdvs.length,lbl:'RDV'},{ico:'👤',val:wg,lbl:'Gérants'},{ico:'📁',val:S.folders.length,lbl:'Dossiers'},{ico:'💾',val:Math.round(JSON.stringify(S).length/1024)+' Ko',lbl:'Taille'}];el.innerHTML=items.map(function(i){return'<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:18px;margin-bottom:3px">'+i.ico+'</div><div style="font-family:\'Fraunces\',serif;font-size:20px;font-weight:700;color:var(--ink)">'+i.val+'</div><div style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-top:1px">'+i.lbl+'</div></div>';}).join('');}
+function renderBackupStats(){loadGistConfig();var ls=profileLastSync(currentPid);if(ls)setSyncStatus('✅','Configuré','Dernière sync : '+new Date(ls).toLocaleString('fr-FR'),false);else if(profileToken(currentPid))setSyncStatus('⚙️','Token configuré','Cliquez Sync pour démarrer',false);var ns=document.getElementById('notif-status'),nb=document.getElementById('btn-notif');if(ns&&typeof Notification!=='undefined'){if(Notification.permission==='granted'){ns.innerHTML='<span style="color:var(--green);font-weight:600">✓ Notifications activées</span>';if(nb){nb.textContent='✓ Activé';nb.style.background='var(--green)';}}else if(Notification.permission==='denied'){ns.innerHTML='<span style="color:var(--red)">✕ Bloquées</span> — activez dans Réglages → Safari';}else{ns.textContent='Cliquez pour autoriser les notifications.';}}var el=document.getElementById('backup-stats');if(!el)return;var wg=S.companies.filter(function(c){return c.gerant&&c.gerant.nom;}).length;var items=[{ico:'🏢',val:S.companies.length,lbl:'Prospects'},{ico:'📞',val:S.calls.length,lbl:'Appels'},{ico:'📅',val:S.rdvs.length,lbl:'RDV'},{ico:'👤',val:wg,lbl:'Gérants'},{ico:'📁',val:S.folders.length,lbl:'Dossiers'},{ico:'💾',val:Math.round(JSON.stringify(S).length/1024)+' Ko',lbl:'Taille'}];el.innerHTML=items.map(function(i){return'<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:18px;margin-bottom:3px">'+i.ico+'</div><div style="font-family:\'Fraunces\',serif;font-size:20px;font-weight:700;color:var(--ink)">'+i.val+'</div><div style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-top:1px">'+i.lbl+'</div></div>';}).join('');}
 
 function exportBackup(){
   // Sync GitHub Gist si configuré
@@ -886,12 +1172,8 @@ function renderStats(){
 }
 
 // INIT
-renderFolders();renderProspects();updateHdr();renderRelances();
-// Restaurer dernière vue
-var lastV=localStorage.getItem('last_view');
-if(lastV&&document.getElementById('view-'+lastV)){navTo(lastV);}
 if(localStorage.getItem('notif_enabled')&&typeof Notification!=='undefined'&&Notification.permission==='granted')startNotifScheduler();
-setTimeout(function(){if(localStorage.getItem('gist_token'))gistSync();},2000);
+initApp();
 </script>
 </body>
 </html>
