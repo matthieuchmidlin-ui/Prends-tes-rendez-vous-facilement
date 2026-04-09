@@ -65,6 +65,9 @@ table{width:100%;border-collapse:collapse;min-width:460px}
 thead th{text-align:left;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--ink3);padding:10px 14px;border-bottom:1px solid var(--border);background:var(--bg);font-weight:600}
 tbody tr{border-bottom:1px solid var(--border)}
 tbody tr:last-child{border-bottom:none}
+tbody tr.clickable{cursor:pointer;transition:background .1s}
+tbody tr.clickable:hover{background:var(--acc-l)}
+tbody tr.clickable:active{background:var(--acc-m)}
 td{padding:11px 14px;font-size:13px;vertical-align:middle}
 .tn{font-weight:600}.ts{color:var(--ink3);font-size:11px;margin-top:1px}
 .badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;white-space:nowrap}
@@ -165,12 +168,12 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
 .csend:disabled{opacity:.4}
 .empty{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px 20px;color:var(--ink3);gap:8px;text-align:center}
 .empty-ico{font-size:36px;opacity:.3}
-.tab-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--border);padding:6px 0 calc(6px + var(--sab));z-index:200}
-.tab-bar-inner{display:flex;justify-content:space-around}
-.tab-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:3px 4px;cursor:pointer;color:var(--ink3);border:none;background:none;-webkit-appearance:none;transition:color .15s;flex:1}
+.tab-bar{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--white);border-top:1px solid var(--border);padding:4px 0 calc(4px + var(--sab));z-index:200}
+.tab-bar-inner{display:flex;justify-content:space-around;width:100%;overflow:hidden}
+.tab-item{display:flex;flex-direction:column;align-items:center;gap:1px;padding:2px 0;cursor:pointer;color:var(--ink3);border:none;background:none;-webkit-appearance:none;transition:color .15s;flex:1;min-width:0;overflow:hidden}
 .tab-item.active{color:var(--acc)}
-.tab-ico{font-size:20px;line-height:1}
-.tab-lbl{font-size:9px;font-weight:600}
+.tab-ico{font-size:19px;line-height:1.2}
+.tab-lbl{font-size:8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:center;padding:0 2px}
 .toast-wrap{position:fixed;bottom:calc(76px + var(--sab));right:16px;display:flex;flex-direction:column;gap:8px;z-index:1000}
 .toast{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-size:13px;max-width:300px;animation:tin .3s ease;display:flex;align-items:center;gap:8px}
 .toast.ok{border-color:#86efac;background:var(--green-l);color:var(--green)}
@@ -225,10 +228,10 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
     <div class="view" id="view-calls">
       <div class="ph"><div><div class="ph-title">Appels</div><div class="ph-sub">Historique</div></div><button class="btn bp bsm" onclick="openAddCall()">+ Saisir</button></div>
       <div class="kpi-row">
-        <div class="kpi" style="--c:var(--acc)"><div class="kpi-lbl">Total</div><div class="kpi-val" id="k-tot">0</div><div class="kpi-note">appels</div></div>
-        <div class="kpi" style="--c:var(--green)"><div class="kpi-lbl">Effectués</div><div class="kpi-val" id="k-done">0</div><div class="kpi-note" id="k-pct">—</div></div>
-        <div class="kpi" style="--c:var(--gold)"><div class="kpi-lbl">En attente</div><div class="kpi-val" id="k-pend">0</div><div class="kpi-note">à rappeler</div></div>
-        <div class="kpi" style="--c:var(--red)"><div class="kpi-lbl">Manqués</div><div class="kpi-val" id="k-miss">0</div><div class="kpi-note">↓</div></div>
+        <div class="kpi" style="--c:var(--acc);cursor:pointer" onclick="filterCalls('')"><div class="kpi-lbl">Total</div><div class="kpi-val" id="k-tot">0</div><div class="kpi-note">appels</div></div>
+        <div class="kpi" style="--c:var(--green);cursor:pointer" onclick="filterCalls('Effectué')"><div class="kpi-lbl">Effectués</div><div class="kpi-val" id="k-done">0</div><div class="kpi-note" id="k-pct">—</div></div>
+        <div class="kpi" style="--c:var(--gold);cursor:pointer" onclick="filterCalls('En attente')"><div class="kpi-lbl">En attente</div><div class="kpi-val" id="k-pend">0</div><div class="kpi-note">à rappeler</div></div>
+        <div class="kpi" style="--c:var(--red);cursor:pointer" onclick="filterCalls('Manqué')"><div class="kpi-lbl">Manqués</div><div class="kpi-val" id="k-miss">0</div><div class="kpi-note">↓</div></div>
       </div>
       <div class="toolbar">
         <div class="srch"><span class="srch-ico">🔍</span><input id="c-srch" placeholder="Rechercher…" oninput="renderCalls()"></div>
@@ -469,7 +472,15 @@ Cordialement,
 // STATE
 var S=JSON.parse(localStorage.getItem('cp5')||'null')||{folders:[{id:'all',name:'Tous',icon:'🏢'}],curFolder:'all',companies:[],calls:[],rdvs:[],tpl:{sender:'',subject:'Confirmation de votre rendez-vous',body:'Bonjour {NOM},\n\nJe vous confirme notre rendez-vous le {DATE} à {HEURE}.\n\nAdresse : {ADRESSE}\n\nCordialement,\n{SIGNATURE}'}};
 var curRdv=null,editCoId=null,pendCoId=null,postCallId=null,rdvSel=null,fuSelected=null,impBuffer=[],gistSyncing=false;
-function save(){localStorage.setItem('cp5',JSON.stringify(S));}
+var _gistSyncTimer=null;
+function save(){
+  localStorage.setItem('cp5',JSON.stringify(S));
+  // Sync GitHub Gist en arrière-plan 10s après la dernière modif
+  if(localStorage.getItem('gist_token')){
+    clearTimeout(_gistSyncTimer);
+    _gistSyncTimer=setTimeout(function(){gistSync();},10000);
+  }
+}
 function pad(n){return n<10?'0'+n:''+n;}
 function toDateStr(d){return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());}
 function fmtTime(d){return pad(d.getHours())+'h'+pad(d.getMinutes());}
@@ -529,7 +540,7 @@ function renderProspects(){
     if(lastRdv)note='<div class="note-card note-rdv"><span>📅</span><span><b>RDV</b> '+fmtDate(lastRdv.date)+' à '+lastRdv.time+(lastRdv.notes?' — '+lastRdv.notes:'')+'</span></div>';
     else if(lastCall&&lastCall.status==='Clôturé')note='<div class="note-card note-clot"><span>🚫</span><span><b>Pas intéressé</b>'+(lastCall.notes?' — '+lastCall.notes:'')+'</span></div>';
     else if(lastCall&&lastCall.notes){var cd=lastCall.date?new Date(lastCall.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'';note='<div class="note-card note-call"><span>📞</span><span style="flex:1;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+(cd?'<span style="color:var(--ink3);margin-right:4px">'+cd+'</span>':'')+lastCall.notes+'</span></div>';}
-    var cs=isMatch?'border:2px solid var(--acc);box-shadow:0 0 0 4px rgba(37,99,235,.1);':(q&&!isMatch?'opacity:0.70;filter:grayscale(20%);':'');
+    var cs=isMatch?'border:2px solid var(--acc);box-shadow:0 0 0 4px rgba(37,99,235,.1);':'';
     return'<div class="cc" style="'+cs+'">'+(isMatch?'<div style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🎯 Correspondance</div>':'')+
       '<div class="cch"><div class="ccav">'+(c.name[0]||'?').toUpperCase()+'</div><div style="flex:1;min-width:0"><div class="ccn">'+c.name+'</div><div class="ccm">'+(c.contact?c.contact+(c.sector?' · ':''):'')+( c.sector||'')+'</div></div><span class="badge '+(tb[c.temp]||'b-warm')+'">'+(tl[c.temp]||'—')+'</span></div>'+
       gl+(c.phone?'<div class="ccm" style="margin-bottom:8px">📱 '+c.phone+'</div>':'')+(c.addr?'<div class="ccm" style="margin-bottom:10px">📍 '+c.addr+'</div>':'')+
@@ -600,7 +611,29 @@ function delRdv(id){if(!confirm('Supprimer ?'))return;S.rdvs=S.rdvs.filter(funct
 // CALLS
 function openAddCall(){document.getElementById('call-date').value=new Date().toISOString().slice(0,16);openM('ov-call');}
 function saveManualCall(){var c=document.getElementById('call-contact').value.trim();if(!c){toast('Contact requis','err');return;}S.calls.unshift({id:'call'+Date.now(),contact:c,phone:document.getElementById('call-phone').value.trim(),date:document.getElementById('call-date').value,status:document.getElementById('call-status').value,notes:document.getElementById('call-notes').value.trim()});save();closeM('ov-call');renderCalls();updateHdr();toast('Appel enregistré','ok');}
-function renderCalls(){var q=(document.getElementById('c-srch')?document.getElementById('c-srch').value:'').toLowerCase();var fs=document.getElementById('c-filt')?document.getElementById('c-filt').value:'';var list=S.calls.filter(function(c){return(!q||((c.contact||'')+(c.company||'')+(c.phone||'')).toLowerCase().includes(q))&&(!fs||c.status===fs);});var tot=S.calls.length,done=S.calls.filter(function(c){return c.status==='Effectué';}).length,pend=S.calls.filter(function(c){return c.status==='En attente';}).length,miss=S.calls.filter(function(c){return c.status==='Manqué';}).length;document.getElementById('k-tot').textContent=tot;document.getElementById('k-done').textContent=done;document.getElementById('k-pct').textContent=tot?Math.round(done/tot*100)+'%':'—';document.getElementById('k-pend').textContent=pend;document.getElementById('k-miss').textContent=miss;document.getElementById('nb-c').textContent=tot;var tbody=document.getElementById('calls-tbody');if(!list.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="empty-ico">📞</div><div>Aucun appel</div></div></td></tr>';return;}var sb={'Effectué':'b-done','En attente':'b-pend','Manqué':'b-miss','Planifié':'b-sched','En cours':'b-sched','Clôturé':'b-clot'};tbody.innerHTML=list.map(function(c){var rdv=c.rdvId?S.rdvs.find(function(r){return r.id===c.rdvId;}):null;var fu=c.followup?'<span style="font-size:11px;color:var(--acc);font-weight:600">📅 '+fmtDate(c.followup)+'</span>':'<span style="color:var(--ink3);font-size:11px">—</span>';return'<tr><td><div class="tn">'+(c.contact||c.company||'—')+'</div><div class="ts">'+(c.phone||'')+'</div></td><td style="color:var(--ink3);font-size:12px">'+(c.date?new Date(c.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—')+'</td><td><span class="badge '+(sb[c.status]||'')+'">'+c.status+'</span></td><td>'+fu+'</td><td>'+(rdv?'<span class="badge b-rdv" style="cursor:pointer" onclick="openRdvDetail(\''+rdv.id+'\')">📅 '+fmtDate(rdv.date)+'</span>':'<span style="color:var(--ink3);font-size:11px">—</span>')+'</td><td><div style="display:flex;gap:4px">'+(c.status==='En cours'?'<button class="btn bg bsm" onclick="openPostCall(\''+c.id+'\')">+</button>':'')+'<button class="btn bd bsm" onclick="delCall(\''+c.id+'\')">✕</button></div></td></tr>';}).join('');}
+function filterCalls(status){navTo('calls');var sel=document.getElementById('c-filt');if(sel){sel.value=status;renderCalls();}}
+function goToProspect(coId){
+  var co=S.companies.find(function(x){return x.id===coId;});
+  if(!co)return;
+  // Naviguer vers Prospects
+  navTo('prospects');
+  // Chercher et surligner la fiche
+  setTimeout(function(){
+    var inp=document.getElementById('p-srch');
+    if(inp){inp.value=co.name;debouncedSearch();}
+  },200);
+}
+function renderCalls(){var q=(document.getElementById('c-srch')?document.getElementById('c-srch').value:'').toLowerCase();var fs=document.getElementById('c-filt')?document.getElementById('c-filt').value:'';var list=S.calls.filter(function(c){return(!q||((c.contact||'')+(c.company||'')+(c.phone||'')).toLowerCase().includes(q))&&(!fs||c.status===fs);});var tot=S.calls.length,done=S.calls.filter(function(c){return c.status==='Effectué';}).length,pend=S.calls.filter(function(c){return c.status==='En attente';}).length,miss=S.calls.filter(function(c){return c.status==='Manqué';}).length;document.getElementById('k-tot').textContent=tot;document.getElementById('k-done').textContent=done;document.getElementById('k-pct').textContent=tot?Math.round(done/tot*100)+'%':'—';document.getElementById('k-pend').textContent=pend;document.getElementById('k-miss').textContent=miss;document.getElementById('nb-c').textContent=tot;var tbody=document.getElementById('calls-tbody');if(!list.length){tbody.innerHTML='<tr><td colspan="6"><div class="empty"><div class="empty-ico">📞</div><div>Aucun appel</div></div></td></tr>';return;}var sb={'Effectué':'b-done','En attente':'b-pend','Manqué':'b-miss','Planifié':'b-sched','En cours':'b-sched','Clôturé':'b-clot'};tbody.innerHTML=list.map(function(c){var rdv=c.rdvId?S.rdvs.find(function(r){return r.id===c.rdvId;}):null;var fu=c.followup?'<span style="font-size:11px;color:var(--acc);font-weight:600">📅 '+fmtDate(c.followup)+'</span>':'<span style="color:var(--ink3);font-size:11px">—</span>';var hasCo=!!c.companyId;var co=hasCo?S.companies.find(function(x){return x.id===c.companyId;}):null;return'<tr class="'+(hasCo?'clickable':'')+'" '+(hasCo?'onclick="goToProspect(\''+c.companyId+'\')" title="Voir la fiche et rappeler"':'')+'>'+
+      '<td><div class="tn">'+(c.contact||c.company||'—')+'</div><div class="ts">'+(c.phone?'📱 '+c.phone:'')+'</div></td>'+
+      '<td style="color:var(--ink3);font-size:12px">'+(c.date?new Date(c.date).toLocaleString('fr-FR',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}):'—')+'</td>'+
+      '<td><span class="badge '+(sb[c.status]||'')+'">'+c.status+'</span></td>'+
+      '<td>'+fu+'</td>'+
+      '<td>'+(rdv?'<span class="badge b-rdv" style="cursor:pointer" onclick="event.stopPropagation();openRdvDetail(\''+rdv.id+'\')">📅 '+fmtDate(rdv.date)+'</span>':'<span style="color:var(--ink3);font-size:11px">—</span>')+'</td>'+
+      '<td onclick="event.stopPropagation()"><div style="display:flex;gap:4px">'+
+      (co&&co.phone?'<button class="btn bp bsm" onclick="event.stopPropagation();launchCall(\''+c.companyId+'\')" title="Appeler">📞</button>':'')+
+      (c.status==='En cours'?'<button class="btn bg bsm" onclick="event.stopPropagation();openPostCall(\''+c.id+'\')">+</button>':'')+
+      '<button class="btn bd bsm" onclick="event.stopPropagation();delCall(\''+c.id+'\')">✕</button>'+
+      '</div></td></tr>';}).join('');}
 function delCall(id){if(!confirm('Supprimer ?'))return;S.calls=S.calls.filter(function(x){return x.id!==id;});save();renderCalls();updateHdr();}
 
 // CSV IMPORT
@@ -642,8 +675,20 @@ document.addEventListener('visibilitychange',function(){if(document.visibilitySt
 // BACKUP
 function renderBackupStats(){loadGistConfig();var ls=localStorage.getItem('gist_last_sync');if(ls)setSyncStatus('✅','Configuré','Dernière sync : '+new Date(ls).toLocaleString('fr-FR'),false);else if(localStorage.getItem('gist_token'))setSyncStatus('⚙️','Token configuré','Cliquez Sync pour démarrer',false);var ns=document.getElementById('notif-status'),nb=document.getElementById('btn-notif');if(ns&&typeof Notification!=='undefined'){if(Notification.permission==='granted'){ns.innerHTML='<span style="color:var(--green);font-weight:600">✓ Notifications activées</span>';if(nb){nb.textContent='✓ Activé';nb.style.background='var(--green)';}}else if(Notification.permission==='denied'){ns.innerHTML='<span style="color:var(--red)">✕ Bloquées</span> — activez dans Réglages → Safari';}else{ns.textContent='Cliquez pour autoriser les notifications.';}}var el=document.getElementById('backup-stats');if(!el)return;var wg=S.companies.filter(function(c){return c.gerant&&c.gerant.nom;}).length;var items=[{ico:'🏢',val:S.companies.length,lbl:'Prospects'},{ico:'📞',val:S.calls.length,lbl:'Appels'},{ico:'📅',val:S.rdvs.length,lbl:'RDV'},{ico:'👤',val:wg,lbl:'Gérants'},{ico:'📁',val:S.folders.length,lbl:'Dossiers'},{ico:'💾',val:Math.round(JSON.stringify(S).length/1024)+' Ko',lbl:'Taille'}];el.innerHTML=items.map(function(i){return'<div style="background:var(--bg);border:1px solid var(--border);border-radius:var(--r);padding:10px;text-align:center"><div style="font-size:18px;margin-bottom:3px">'+i.ico+'</div><div style="font-family:\'Fraunces\',serif;font-size:20px;font-weight:700;color:var(--ink)">'+i.val+'</div><div style="font-size:10px;color:var(--ink3);text-transform:uppercase;letter-spacing:.5px;margin-top:1px">'+i.lbl+'</div></div>';}).join('');}
 
-function exportBackup(){var data=JSON.stringify({version:2,exportedAt:new Date().toISOString(),data:S},null,2);var blob=new Blob([data],{type:'application/json;charset=utf-8'});var url=URL.createObjectURL(blob);var d=new Date();var ds=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());var a=document.createElement('a');a.href=url;a.download='commercial-pro-backup-'+ds+'.json';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);toast('Sauvegarde téléchargée ✓','ok');}
-function handleBackupFile(e){var f=e.target.files[0];if(f){var reader=new FileReader();reader.onload=function(e){try{var parsed=JSON.parse(e.target.result);var r=parsed.data||parsed;if(!r.companies||!Array.isArray(r.companies))throw new Error('Format invalide');if(!confirm('Restaurer ?\n• '+r.companies.length+' prospects\n• '+(r.calls||[]).length+' appels\n• '+(r.rdvs||[]).length+' RDV\n\nDonnées actuelles remplacées.'))return;S={folders:r.folders||[{id:'all',name:'Tous',icon:'🏢'}],curFolder:r.curFolder||'all',companies:r.companies||[],calls:r.calls||[],rdvs:r.rdvs||[],tpl:r.tpl||S.tpl};save();renderFolders();renderProspects();renderBackupStats();updateHdr();toast('✓ '+S.companies.length+' prospects restaurés','ok');}catch(err){toast('Fichier invalide : '+err.message,'err');}};reader.readAsText(f,'UTF-8');}e.target.value='';}
+function exportBackup(){
+  // Sync GitHub Gist si configuré
+  if(localStorage.getItem('gist_token')) gistSync();
+  // Export local aussi
+  var data=JSON.stringify({version:2,exportedAt:new Date().toISOString(),data:S},null,2);
+  var blob=new Blob([data],{type:'application/json;charset=utf-8'});
+  var url=URL.createObjectURL(blob);
+  var d=new Date();var ds=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());
+  var a=document.createElement('a');a.href=url;a.download='commercial-pro-backup-'+ds+'.json';
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);},1000);
+  toast('Sauvegarde téléchargée + sync GitHub ✓','ok');
+}
+function handleBackupFile(e){var f=e.target.files[0];if(f){var reader=new FileReader();reader.onload=function(e){try{var parsed=JSON.parse(e.target.result);var r=parsed.data||parsed;if(!r.companies||!Array.isArray(r.companies))throw new Error('Format invalide');if(!confirm('Restaurer ?\n• '+r.companies.length+' prospects\n• '+(r.calls||[]).length+' appels\n• '+(r.rdvs||[]).length+' RDV\n\nDonnées actuelles remplacées.'))return;S={folders:r.folders||[{id:'all',name:'Tous',icon:'🏢'}],curFolder:r.curFolder||'all',companies:r.companies||[],calls:r.calls||[],rdvs:r.rdvs||[],tpl:r.tpl||S.tpl};save();renderFolders();renderProspects();renderBackupStats();updateHdr();toast('✓ '+S.companies.length+' prospects restaurés','ok');if(localStorage.getItem('gist_token'))setTimeout(gistSync,1000);}catch(err){toast('Fichier invalide : '+err.message,'err');}};reader.readAsText(f,'UTF-8');}e.target.value='';}
 
 // EXPORT SPREADSHEET
 function exportSpreadsheet(type){var sep=type==='csv'?',':'\t',ext=type==='csv'?'csv':'tsv',BOM='\uFEFF';var rows=[['Entreprise','Contact','Téléphone','Email','Adresse','Secteur','Température','Gérant','Titre Gérant','Dossier','Statut appel','Date relance','Notes appel'].join(sep)];var temps={hot:'Chaud',warm:'Tiède',cold:'Froid'};S.companies.forEach(function(c){var lc=S.calls.filter(function(cl){return cl.companyId===c.id;}).sort(function(a,b){return(b.date||'').localeCompare(a.date||'');})[0];var fl=S.folders.find(function(f){return f.id===c.folderId;});rows.push([ce(c.name,sep),ce(c.contact||'',sep),ce(c.phone||'',sep),ce(c.email||'',sep),ce(c.addr||'',sep),ce(c.sector||'',sep),ce(temps[c.temp]||'',sep),ce(c.gerant&&c.gerant.nom?c.gerant.nom:'',sep),ce(c.gerant&&c.gerant.titre?c.gerant.titre:'',sep),ce(fl?fl.name:'',sep),ce(lc?lc.status:'',sep),ce(lc&&lc.followup?lc.followup:'',sep),ce(lc&&lc.notes?lc.notes:'',sep)].join(sep));});rows.push('','','HISTORIQUE DES APPELS','',['Contact','Entreprise','Téléphone','Date','Statut','Raison','Notes','Relance','RDV'].join(sep));S.calls.forEach(function(c){var rdv=c.rdvId?S.rdvs.find(function(r){return r.id===c.rdvId;}):null;rows.push([ce(c.contact||'',sep),ce(c.company||'',sep),ce(c.phone||'',sep),ce(c.date?new Date(c.date).toLocaleString('fr-FR'):'',sep),ce(c.status||'',sep),ce(c.reason||'',sep),ce(c.notes||'',sep),ce(c.followup||'',sep),ce(rdv?fmtDate(rdv.date)+' '+rdv.time:'',sep)].join(sep));});rows.push('','','RENDEZ-VOUS','',['Contact','Entreprise','Date','Heure','Adresse','Email','Notes','Statut'].join(sep));S.rdvs.forEach(function(r){rows.push([ce(r.contact||'',sep),ce(r.company||'',sep),ce(fmtDate(r.date),sep),ce(r.time||'',sep),ce(r.addr||'',sep),ce(r.email||'',sep),ce(r.notes||'',sep),ce(r.status||'',sep)].join(sep));});var blob=new Blob([BOM+rows.join('\n')],{type:'text/csv;charset=utf-8'});var url=URL.createObjectURL(blob);var d=new Date();var ds=d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate());var a=document.createElement('a');a.href=url;a.download='commercial-pro-export-'+ds+'.'+ext;document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);toast('Export téléchargé ✓','ok');}
