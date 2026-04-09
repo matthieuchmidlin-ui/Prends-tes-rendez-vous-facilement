@@ -231,12 +231,7 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
 .cs-today{background:#fef3c7;color:#d97706;border:1px solid #fcd34d;animation:pulse 1.5s ease infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 /* SWIPE ACTIONS */
-.swipe-wrap{position:relative;border-radius:var(--r2);overflow:hidden}
-.swipe-inner{position:relative;z-index:1;transition:transform .15s ease;will-change:transform;background:var(--white);border-radius:var(--r2);border:1px solid var(--border);box-shadow:none}
-.swipe-bg{position:absolute;top:1px;bottom:1px;right:0;display:flex;width:144px;border-radius:0 calc(var(--r2) - 1px) calc(var(--r2) - 1px) 0;overflow:hidden;z-index:0}
-.swipe-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:72px;font-size:10px;font-weight:700;cursor:pointer;border:none;color:#fff}
-.swipe-call{background:var(--green)}
-.swipe-clot{background:#64748b}
+/* swipe removed */
 /* RELANCES TODAY */
 .relance-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r);padding:13px 16px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .1s}
 .relance-card:active{background:var(--acc-l)}
@@ -1006,7 +1001,7 @@ function renderProspects(){
   grid.innerHTML=displayList.map(function(c){
     var isMatch=q&&matchIds[c.id];
     var g=c.gerant;
-    var gl=g&&g.nom?'<div class="ger-strip"><span>👤</span><span class="gn">'+g.nom+'</span><span class="gr">— '+(g.titre||'Dirigeant')+'</span><button class="rfbtn" onclick="event.stopPropagation();resetGer(\''+c.id+'\')">↻</button></div>':'';
+    var gl='';
     var pb=c.phone?'<button class="call-big" onclick="launchCall(\''+c.id+'\')"><span class="ring">📞</span> Appeler '+c.phone+'</button>':'';
     var lastCall=S.calls.filter(function(cl){return cl.companyId===c.id;}).sort(function(a,b){return(b.date||'').localeCompare(a.date||'');})[0];
     var lastRdv=S.rdvs.filter(function(r){return r.companyId===c.id;}).sort(function(a,b){return(b.createdAt||'').localeCompare(a.createdAt||'');})[0];
@@ -1029,14 +1024,25 @@ function renderProspects(){
     var cs=isMatch?'border:2px solid var(--acc);box-shadow:0 0 0 4px rgba(37,99,235,.1);':'';
       // Ne pas afficher le contact s'il est identique au gérant (évite doublon)
     var showContact = c.contact && (!g || !g.nom || c.contact !== g.nom);
-    return'<div class="swipe-wrap" id="sw-'+c.id+'" ontouchstart="swipeStart(event,\''+c.id+'\')" ontouchmove="swipeMove(event,\''+c.id+'\')" ontouchend="swipeEnd(event,\''+c.id+'\',\''+c.phone+'\')">'+
-    '<div class="swipe-bg"><button class="swipe-btn swipe-call" onclick="launchCall(\''+c.id+'\')"><span style="font-size:20px">📞</span>Appeler</button><button class="swipe-btn swipe-clot" onclick="quickClose(\''+c.id+'\')"><span style="font-size:20px">🚫</span>Clôturer</button></div>'+
-    '<div class="swipe-inner cc" style="'+cs+'">'+(isMatch?'<div style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🎯 Correspondance</div>':'')+
+    // Gérant strip — "Non trouvé" si recherche faite mais rien
+    var glHtml = '';
+    if(g && g.nom){
+      glHtml = '<div class="ger-strip"><span>👤</span><span class="gn">'+g.nom+'</span><span class="gr">— '+(g.titre||'Dirigeant')+'</span><button class="rfbtn" onclick="event.stopPropagation();resetGer(\''+c.id+'\')">↻</button></div>';
+    } else if(g && g.nom === null){
+      glHtml = '<div style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:11px;color:var(--ink3);margin-bottom:8px"><span>👤</span><span>Non trouvé</span><button class="rfbtn" onclick="event.stopPropagation();resetGer(\''+c.id+'\')">↻</button></div>';
+    }
+    return'<div class="cc" id="sw-'+c.id+'" style="'+cs+'">'+(isMatch?'<div style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🎯 Correspondance</div>':'')+
       '<div class="cch"><div class="ccav">'+(c.name[0]||'?').toUpperCase()+'</div><div style="flex:1;min-width:0"><div class="ccn">'+c.name+'</div><div class="ccm">'+(showContact?c.contact+(c.sector?' · ':''):'')+( c.sector||'')+'</div></div>'+statusBadge+'</div>'+
-      gl+(c.phone?'<div class="ccm" style="margin-bottom:8px">📱 '+c.phone+'</div>':'')+(c.addr?'<div class="ccm" style="margin-bottom:10px">📍 '+c.addr+'</div>':'')+
+      glHtml+
+      (c.phone?'<div class="ccm" style="margin-bottom:8px">📱 '+c.phone+'</div>':'')+(c.addr?'<div class="ccm" style="margin-bottom:10px">📍 '+c.addr+'</div>':'')+
       '<div style="margin-bottom:8px">'+pb+'</div>'+note+
-      '<div style="display:flex;gap:6px;align-items:center"><button class="btn bg bsm" onclick=\'openAddCo(JSON.parse(decodeURIComponent("'+encodeURIComponent(JSON.stringify(c))+'")))\'>✏️</button><button class="btn bd bsm" onclick="deleteCo(\''+c.id+'\')">✕</button>'+(lastCall&&lastCall.followup?'<span style="font-size:11px;color:var(--acc);font-weight:600;margin-left:4px">🔁 '+fmtDate(lastCall.followup)+'</span>':'')+'</div>'+
-    '</div></div>';
+      '<div style="display:flex;gap:6px;align-items:center">'+
+        '<button class="btn bg bsm" onclick=\'openAddCo(JSON.parse(decodeURIComponent("'+encodeURIComponent(JSON.stringify(c))+'")))\'>✏️</button>'+
+        '<button class="btn bd bsm" onclick="deleteCo(\''+c.id+'\')">✕</button>'+
+        '<button class="btn bsm" style="background:#f1f5f9;color:#64748b;border:1px solid #cbd5e1" onclick="quickClose(\''+c.id+'\')" title="Pas intéressé">🚫</button>'+
+        (lastCall&&lastCall.followup?'<span style="font-size:11px;color:var(--acc);font-weight:600;margin-left:4px">🔁 '+fmtDate(lastCall.followup)+'</span>':'')+
+      '</div>'+
+    '</div>';
   }).join('');
   if(q&&mc){setTimeout(function(){var el=grid.querySelector('[style*="border:2px solid var(--acc)"]');if(el)el.scrollIntoView({behavior:'smooth',block:'center'});},60);}
   if(hasMore){var more=document.createElement('div');more.style.cssText='grid-column:1/-1;text-align:center;padding:8px';more.innerHTML='<button class="btn bg" style="width:100%;padding:12px;font-size:13px" onclick="loadMoreProspects(this)">↓ Voir les '+(list.length-PAGE)+' autres fiches</button>';grid.appendChild(more);}
@@ -1264,13 +1270,11 @@ function swipeReset(id){var el=document.querySelector('#sw-'+id+' .swipe-inner')
 
 // QUICK CLOSE FROM SWIPE
 function quickClose(coId){
-  swipeReset(coId);
   var co=S.companies.find(function(x){return x.id===coId;});
   if(!co)return;
-  if(!confirm('Marquer "'+co.name+'" comme Pas intéressé ?'))return;
   var call={id:'call'+Date.now(),companyId:coId,contact:co.contact||co.name,company:co.name,phone:co.phone,date:new Date().toISOString(),status:'Clôturé',reason:'Pas intéressé',notes:'',rdvId:null};
   S.calls.unshift(call);save();renderProspects();updateHdr();
-  toast(co.name+' clôturé','ok');
+  toast(co.name+' — Clôturé','ok');
 }
 
 // RELANCES VIEW
