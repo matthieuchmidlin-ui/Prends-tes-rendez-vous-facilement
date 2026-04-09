@@ -231,9 +231,9 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
 .cs-today{background:#fef3c7;color:#d97706;border:1px solid #fcd34d;animation:pulse 1.5s ease infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.6}}
 /* SWIPE ACTIONS */
-.swipe-wrap{position:relative;overflow:hidden;border-radius:var(--r2);margin-bottom:0}
-.swipe-inner{transition:transform .15s ease;will-change:transform;background:var(--white);border-radius:var(--r2);border:1px solid var(--border)}
-.swipe-bg{position:absolute;top:0;bottom:0;right:0;display:flex;border-radius:0 var(--r2) var(--r2) 0;overflow:hidden}
+.swipe-wrap{position:relative;border-radius:var(--r2);overflow:hidden}
+.swipe-inner{position:relative;z-index:1;transition:transform .15s ease;will-change:transform;background:var(--white);border-radius:var(--r2);border:1px solid var(--border);box-shadow:none}
+.swipe-bg{position:absolute;top:1px;bottom:1px;right:0;display:flex;width:144px;border-radius:0 calc(var(--r2) - 1px) calc(var(--r2) - 1px) 0;overflow:hidden;z-index:0}
 .swipe-btn{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;width:72px;font-size:10px;font-weight:700;cursor:pointer;border:none;color:#fff}
 .swipe-call{background:var(--green)}
 .swipe-clot{background:#64748b}
@@ -253,10 +253,24 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
 <!-- PROFILE SELECTION SCREEN -->
 <div id="profile-screen">
   <div class="ps-logo"><div class="ps-logo-dot">C</div>Commercial Pro</div>
-  <div class="ps-sub">Sélectionnez votre profil</div>
+  <div class="ps-sub" id="ps-sub">Sélectionnez votre profil</div>
   <div class="ps-grid" id="ps-grid"></div>
-  <div style="font-size:11px;color:var(--ink3);text-align:center;max-width:300px">
-    Chaque profil a ses propres données et sa propre synchronisation GitHub Gist
+  <div id="ps-connect-zone" style="margin-top:8px;text-align:center">
+    <div style="font-size:11px;color:var(--ink3);margin-bottom:10px">Vous avez déjà un profil sur un autre appareil ?</div>
+    <button class="btn bg" style="font-size:13px" onclick="showConnectMode()">🔗 Se connecter avec GitHub Gist</button>
+  </div>
+  <div id="ps-connect-form" style="display:none;width:100%;max-width:360px;margin-top:8px">
+    <div style="background:var(--white);border:1px solid var(--border);border-radius:var(--r2);padding:20px">
+      <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:700;margin-bottom:4px">Se connecter</div>
+      <div style="font-size:12px;color:var(--ink3);margin-bottom:16px">Entrez votre token GitHub pour récupérer votre profil</div>
+      <div class="fg"><label>Prénom / Nom</label><input id="conn-name" placeholder="Ex: Matthieu Martin"></div>
+      <div class="fg"><label>Token GitHub</label><input id="conn-token" type="password" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"></div>
+      <div class="fg"><label>Code PIN (4 chiffres)</label><input id="conn-pin" type="password" inputmode="numeric" maxlength="4" placeholder="• • • •" style="letter-spacing:8px;font-size:22px;text-align:center"></div>
+      <div style="display:flex;gap:8px;margin-top:4px">
+        <button class="btn bg" style="flex:1;justify-content:center" onclick="hideConnectMode()">Annuler</button>
+        <button class="btn bp" style="flex:1;justify-content:center" onclick="connectFromGist()">☁️ Récupérer</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -788,6 +802,86 @@ function openAddProfile(){
   openM('ov-profile');
 }
 
+function showConnectMode(){
+  document.getElementById('ps-connect-zone').style.display='none';
+  document.getElementById('ps-connect-form').style.display='block';
+  document.getElementById('conn-name').focus();
+}
+function hideConnectMode(){
+  document.getElementById('ps-connect-zone').style.display='block';
+  document.getElementById('ps-connect-form').style.display='none';
+}
+
+async function connectFromGist(){
+  var name=document.getElementById('conn-name').value.trim();
+  var token=document.getElementById('conn-token').value.trim();
+  var pin=document.getElementById('conn-pin').value.trim();
+  if(!name){toast('Prénom requis','err');return;}
+  if(!token){toast('Token GitHub requis','err');return;}
+  if(!pin||pin.length!==4||!/^\d{4}$/.test(pin)){toast('PIN 4 chiffres requis','err');return;}
+
+  var btn=document.querySelector('#ps-connect-form .bp');
+  btn.textContent='⏳ Récupération…';btn.disabled=true;
+
+  try{
+    var headers={'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};
+    // Chercher les Gists avec le fichier commercial-pro.json
+    var listR=await fetch('https://api.github.com/gists?per_page=30',{headers:headers});
+    if(!listR.ok){
+      if(listR.status===401)throw new Error('Token invalide — vérifiez votre Personal Access Token');
+      throw new Error('Erreur GitHub '+listR.status);
+    }
+    var gists=await listR.json();
+    var found=gists.find(function(g){return g.files&&g.files['commercial-pro.json'];});
+    if(!found){
+      // Aucun gist trouvé — créer un nouveau profil avec ce token
+      var pid='p'+Date.now();
+      var profiles=getProfiles();
+      var autoColors=['#2563eb','#16a34a','#dc2626','#b45309','#7c3aed','#0891b2','#be185d','#475569'];
+      var color=autoColors[profiles.length%autoColors.length];
+      profiles.push({id:pid,name:name,color:color});
+      saveProfiles(profiles);
+      localStorage.setItem('pin_'+pid,btoa(pin));
+      setProfileToken(pid,token);
+      btn.textContent='☁️ Récupérer';btn.disabled=false;
+      toast('Aucune donnée trouvée — nouveau profil créé','ok');
+      selectProfile(pid);
+      return;
+    }
+
+    // Charger les données du Gist
+    var gistR=await fetch('https://api.github.com/gists/'+found.id,{headers:headers});
+    var gistData=await gistR.json();
+    var raw=gistData.files['commercial-pro.json'].content;
+    var parsed=JSON.parse(raw);
+    var data=parsed.data||parsed;
+
+    // Créer le profil local avec les données du cloud
+    var pid2='p'+Date.now();
+    var profiles2=getProfiles();
+    var autoColors2=['#2563eb','#16a34a','#dc2626','#b45309','#7c3aed','#0891b2','#be185d','#475569'];
+    var color2=autoColors2[profiles2.length%autoColors2.length];
+    profiles2.push({id:pid2,name:name,color:color2});
+    saveProfiles(profiles2);
+    localStorage.setItem('pin_'+pid2,btoa(pin));
+    setProfileToken(pid2,token);
+    setProfileGistId(pid2,found.id);
+    setProfileLastSync(pid2,parsed.syncedAt||new Date().toISOString());
+    // Sauvegarder les données
+    localStorage.setItem('cp5_'+pid2,JSON.stringify(data));
+
+    btn.textContent='☁️ Récupérer';btn.disabled=false;
+    var cnt=data.companies?data.companies.length:0;
+    toast('✓ '+cnt+' prospects récupérés depuis GitHub !','ok');
+    hideConnectMode();
+    selectProfile(pid2);
+
+  }catch(e){
+    btn.textContent='☁️ Récupérer';btn.disabled=false;
+    toast('Erreur : '+e.message,'err');
+  }
+}
+
 function deleteProfile(pid){
   var profiles=getProfiles();var p=profiles.find(function(x){return x.id===pid;});if(!p)return;
   if(!confirm('Supprimer "'+p.name+'" ?\nDonnées locales effacées.'))return;
@@ -816,24 +910,23 @@ function showProfileSwitch(){save();renderProfileScreen();document.getElementByI
 
 function initApp(){
   var profiles=getProfiles();
+  // Migration données anciennes sans profil
   if(!profiles.length){
     var hasData=localStorage.getItem('cp5');
     if(hasData){
-      var pid='p_default';profiles=[{id:pid,name:'Mon profil',color:'#2563eb'}];saveProfiles(profiles);
+      var pid='p_default';
+      profiles=[{id:pid,name:'Mon profil',color:'#2563eb'}];
+      saveProfiles(profiles);
       localStorage.setItem(profileKey(pid),hasData);
       var ot=localStorage.getItem('gist_token'),og=localStorage.getItem('gist_id');
       if(ot)setProfileToken(pid,ot);if(og)setProfileGistId(pid,og);
-      selectProfile(pid);
-    } else {renderProfileScreen();}
+    }
+    // Qu'il y ait eu migration ou non, afficher l'écran profil
+    renderProfileScreen();
     return;
   }
-  if(currentPid&&profiles.find(function(x){return x.id===currentPid;})){
-    document.getElementById('profile-screen').classList.add('hidden');
-    S=loadState(currentPid);renderProfileBadge();renderFolders();renderProspects();updateHdr();renderRelances();
-    var lv=localStorage.getItem('last_view_'+currentPid);
-    if(lv&&document.getElementById('view-'+lv))navTo(lv);
-    if(profileToken(currentPid))setTimeout(gistSync,1500);
-  } else {renderProfileScreen();}
+  // Toujours afficher l'écran de sélection de profil au démarrage
+  renderProfileScreen();
 }
 
 function pad(n){return n<10?'0'+n:''+n;}
@@ -934,10 +1027,12 @@ function renderProspects(){
     else if(lastCall&&lastCall.status==='Clôturé')note='<div class="note-card note-clot"><span>🚫</span><span><b>Pas intéressé</b>'+(lastCall.notes?' — '+lastCall.notes:'')+'</span></div>';
     else if(lastCall&&lastCall.notes){var cd=lastCall.date?new Date(lastCall.date).toLocaleDateString('fr-FR',{day:'2-digit',month:'short'}):'';note='<div class="note-card note-call"><span>📞</span><span style="flex:1;min-width:0;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical">'+(cd?'<span style="color:var(--ink3);margin-right:4px">'+cd+'</span>':'')+lastCall.notes+'</span></div>';}
     var cs=isMatch?'border:2px solid var(--acc);box-shadow:0 0 0 4px rgba(37,99,235,.1);':'';
+      // Ne pas afficher le contact s'il est identique au gérant (évite doublon)
+    var showContact = c.contact && (!g || !g.nom || c.contact !== g.nom);
     return'<div class="swipe-wrap" id="sw-'+c.id+'" ontouchstart="swipeStart(event,\''+c.id+'\')" ontouchmove="swipeMove(event,\''+c.id+'\')" ontouchend="swipeEnd(event,\''+c.id+'\',\''+c.phone+'\')">'+
     '<div class="swipe-bg"><button class="swipe-btn swipe-call" onclick="launchCall(\''+c.id+'\')"><span style="font-size:20px">📞</span>Appeler</button><button class="swipe-btn swipe-clot" onclick="quickClose(\''+c.id+'\')"><span style="font-size:20px">🚫</span>Clôturer</button></div>'+
     '<div class="swipe-inner cc" style="'+cs+'">'+(isMatch?'<div style="font-size:10px;font-weight:700;color:var(--acc);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">🎯 Correspondance</div>':'')+
-      '<div class="cch"><div class="ccav">'+(c.name[0]||'?').toUpperCase()+'</div><div style="flex:1;min-width:0"><div class="ccn">'+c.name+'</div><div class="ccm">'+(c.contact?c.contact+(c.sector?' · ':''):'')+( c.sector||'')+'</div></div>'+statusBadge+'</div>'+
+      '<div class="cch"><div class="ccav">'+(c.name[0]||'?').toUpperCase()+'</div><div style="flex:1;min-width:0"><div class="ccn">'+c.name+'</div><div class="ccm">'+(showContact?c.contact+(c.sector?' · ':''):'')+( c.sector||'')+'</div></div>'+statusBadge+'</div>'+
       gl+(c.phone?'<div class="ccm" style="margin-bottom:8px">📱 '+c.phone+'</div>':'')+(c.addr?'<div class="ccm" style="margin-bottom:10px">📍 '+c.addr+'</div>':'')+
       '<div style="margin-bottom:8px">'+pb+'</div>'+note+
       '<div style="display:flex;gap:6px;align-items:center"><button class="btn bg bsm" onclick=\'openAddCo(JSON.parse(decodeURIComponent("'+encodeURIComponent(JSON.stringify(c))+'")))\'>✏️</button><button class="btn bd bsm" onclick="deleteCo(\''+c.id+'\')">✕</button>'+(lastCall&&lastCall.followup?'<span style="font-size:11px;color:var(--acc);font-weight:600;margin-left:4px">🔁 '+fmtDate(lastCall.followup)+'</span>':'')+'</div>'+
@@ -1064,7 +1159,71 @@ function saveGistConfig(){var t=document.getElementById('gist-token'),i=document
 function loadGistConfig(){var t=document.getElementById('gist-token'),i=document.getElementById('gist-id');if(t)t.value=profileToken(currentPid)||'';if(i)i.value=profileGistId(currentPid)||'';}
 function clearGistConfig(){['gist_token_'+currentPid,'gist_id_'+currentPid,'gist_sync_'+currentPid].forEach(function(k){localStorage.removeItem(k);});loadGistConfig();setSyncStatus('⚙️','Non configuré','Entrez votre token GitHub ci-dessous',false);toast('Configuration effacée','info');}
 function setSyncStatus(ico,title,sub,spin){var i=document.getElementById('sync-ico'),t=document.getElementById('sync-title'),s=document.getElementById('sync-sub'),sp=document.getElementById('sync-spin');if(i)i.textContent=ico;if(t)t.textContent=title;if(s)s.textContent=sub;if(sp)sp.style.display=spin?'block':'none';}
-async function gistSync(){var token=profileToken(currentPid);if(!token){toast('Entrez votre token GitHub dans Backup','err');navTo('backup');return;}if(gistSyncing)return;gistSyncing=true;setSyncStatus('🔄','Synchronisation…','GitHub Gist',true);try{var gistId=profileGistId(currentPid)||'';var payload=JSON.stringify({version:2,syncedAt:new Date().toISOString(),data:S});var headers={'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};if(gistId){try{var getR=await fetch('https://api.github.com/gists/'+gistId,{headers:headers});if(getR.ok){var gist=await getR.json();var rc=gist.files&&gist.files['commercial-pro.json']&&gist.files['commercial-pro.json'].content;if(rc){var remote=JSON.parse(rc);var remoteTime=new Date(remote.syncedAt||0).getTime();var localTime=new Date(localStorage.getItem('gist_last_sync')||0).getTime();if(remoteTime>localTime+5000 && S.companies && S.companies.length===0){S=remote.data;save();renderFolders();renderProspects();updateHdr();setProfileLastSync(currentPid,remote.syncedAt);setSyncStatus('✅','Données chargées','Sync: '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Données chargées depuis GitHub','ok');gistSyncing=false;return;}}}}catch(e){}var pR=await fetch('https://api.github.com/gists/'+gistId,{method:'PATCH',headers:headers,body:JSON.stringify({files:{'commercial-pro.json':{content:payload}}})});if(!pR.ok)throw new Error('PATCH '+pR.status);}else{var cR=await fetch('https://api.github.com/gists',{method:'POST',headers:headers,body:JSON.stringify({description:'Commercial Pro — Sauvegarde CRM',public:false,files:{'commercial-pro.json':{content:payload}}})});if(!cR.ok)throw new Error('CREATE '+cR.status);var created=await cR.json();gistId=created.id;setProfileGistId(currentPid,gistId);var inp=document.getElementById('gist-id');if(inp)inp.value=gistId;}setProfileLastSync(currentPid,new Date().toISOString());localStorage.setItem('gist_last_sync_'+currentPid,new Date().toISOString());setSyncStatus('✅','Synchronisé ✓','Dernière sync : '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Sauvegardé sur GitHub Gist','ok');}catch(e){setSyncStatus('❌','Erreur',e.message,false);toast('Sync échouée : '+e.message,'err');}gistSyncing=false;}
+async function gistSync(){
+  var token=profileToken(currentPid);
+  if(!token){toast('Entrez votre token GitHub dans Backup','err');navTo('backup');return;}
+  if(gistSyncing)return;
+  gistSyncing=true;
+  setSyncStatus('🔄','Synchronisation…','GitHub Gist',true);
+  try{
+    var gistId=profileGistId(currentPid)||'';
+    var headers={'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};
+
+    if(gistId){
+      // Lire le Gist distant
+      try{
+        var getR=await fetch('https://api.github.com/gists/'+gistId,{headers:headers});
+        if(getR.ok){
+          var gist=await getR.json();
+          var rc=gist.files&&gist.files['commercial-pro.json']&&gist.files['commercial-pro.json'].content;
+          if(rc){
+            var remote=JSON.parse(rc);
+            var remoteTime=new Date(remote.syncedAt||0).getTime();
+            var localLastSync=new Date(profileLastSync(currentPid)||0).getTime();
+            var localCoCount=S.companies?S.companies.length:0;
+            var remoteCoCount=remote.data&&remote.data.companies?remote.data.companies.length:0;
+
+            // Pull si : données distantes plus récentes ET (local vide OU distant a plus de données)
+            if(remoteTime>localLastSync+5000 && (localCoCount===0 || remoteCoCount>localCoCount)){
+              S=remote.data;
+              save();
+              renderFolders();renderProspects();renderRelances();updateHdr();
+              setProfileLastSync(currentPid,remote.syncedAt);
+              setSyncStatus('✅','Données chargées depuis GitHub',''+remoteCoCount+' prospects',false);
+              toast('✓ '+remoteCoCount+' prospects chargés depuis GitHub','ok');
+              gistSyncing=false;
+              return;
+            }
+          }
+        }
+      }catch(e){}
+
+      // Push local → GitHub
+      var payload=JSON.stringify({version:2,syncedAt:new Date().toISOString(),data:S});
+      var pR=await fetch('https://api.github.com/gists/'+gistId,{method:'PATCH',headers:headers,body:JSON.stringify({files:{'commercial-pro.json':{content:payload}}})});
+      if(!pR.ok)throw new Error('PATCH '+pR.status);
+
+    }else{
+      // Créer un nouveau Gist
+      var payload2=JSON.stringify({version:2,syncedAt:new Date().toISOString(),data:S});
+      var cR=await fetch('https://api.github.com/gists',{method:'POST',headers:headers,body:JSON.stringify({description:'Commercial Pro — '+((getProfiles().find(function(x){return x.id===currentPid;})||{}).name||'Profil'),public:false,files:{'commercial-pro.json':{content:payload2}}})});
+      if(!cR.ok)throw new Error('CREATE '+cR.status);
+      var created=await cR.json();
+      gistId=created.id;
+      setProfileGistId(currentPid,gistId);
+      var inp=document.getElementById('gist-id');if(inp)inp.value=gistId;
+    }
+
+    setProfileLastSync(currentPid,new Date().toISOString());
+    setSyncStatus('✅','Synchronisé ✓','Dernière sync : '+new Date().toLocaleTimeString('fr-FR'),false);
+    toast('✓ Sauvegardé sur GitHub Gist','ok');
+
+  }catch(e){
+    setSyncStatus('❌','Erreur de synchronisation',e.message,false);
+    toast('Sync échouée : '+e.message,'err');
+  }
+  gistSyncing=false;
+}
 setInterval(function(){if(profileToken(currentPid)&&!gistSyncing&&document.visibilityState!=='hidden')gistSync();},5*60*1000);
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&profileToken(currentPid))setTimeout(gistSync,1000);});
 
