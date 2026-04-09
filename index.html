@@ -218,8 +218,8 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
 .toast.ok{border-color:#86efac;background:var(--green-l);color:var(--green)}
 .toast.err{border-color:#fca5a5;background:var(--red-l);color:var(--red)}
 @keyframes tin{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
-@media(max-width:640px){.sidebar{display:none}.tab-bar{display:block}main{padding-bottom:calc(72px + var(--sab))}.toast-wrap{bottom:calc(76px + var(--sab))}.kpi-row{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}}
-@media(min-width:641px){.cg{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}.kpi-row{grid-template-columns:repeat(4,1fr)}.overlay{align-items:center;padding-bottom:0}.modal{border-radius:var(--r2);max-height:88vh}.modal::before{display:none}}
+@media(max-width:767px){.sidebar{display:none}.tab-bar{display:block}main{padding-bottom:calc(72px + var(--sab))}.toast-wrap{bottom:calc(76px + var(--sab))}.kpi-row{grid-template-columns:1fr 1fr}.fgrid2{grid-template-columns:1fr}}
+@media(min-width:768px){.cg{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}.kpi-row{grid-template-columns:repeat(4,1fr)}.overlay{align-items:center;padding-bottom:0}.modal{border-radius:var(--r2);max-height:88vh}.modal::before{display:none}}
 /* STATUS BADGE ON PROSPECT CARD */
 .co-status{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;flex-shrink:0}
 .cs-new{background:var(--bg);color:var(--ink3);border:1px solid var(--border)}
@@ -265,12 +265,15 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
   <div class="pin-av" id="pin-av"></div>
   <div class="pin-name" id="pin-name"></div>
   <div class="pin-hint" id="pin-hint">Entrez votre code PIN</div>
-  <div class="pin-dots">
+  <div class="pin-dots" onclick="focusPinInput()">
     <div class="pin-dot" id="pd0"></div>
     <div class="pin-dot" id="pd1"></div>
     <div class="pin-dot" id="pd2"></div>
     <div class="pin-dot" id="pd3"></div>
   </div>
+  <input id="pin-keyboard-input" type="password" inputmode="numeric" maxlength="4"
+    style="position:absolute;opacity:0;width:1px;height:1px;pointer-events:none"
+    oninput="onPinKeyboardInput(this)">
   <div class="pin-pad">
     <button class="pin-btn" onclick="pinPress('1')">1<span class="pin-btn-sub"></span></button>
     <button class="pin-btn" onclick="pinPress('2')">2<span class="pin-btn-sub">ABC</span></button>
@@ -297,18 +300,7 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
       <input id="pm-pin" type="password" inputmode="numeric" maxlength="4" pattern="[0-9]{4}" placeholder="• • • •" style="letter-spacing:8px;font-size:22px;text-align:center">
       <div style="font-size:11px;color:var(--ink3);margin-top:4px">Requis pour accéder à ce profil</div>
     </div>
-    <div class="fg"><label>Couleur</label>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px" id="pm-colors">
-        <div data-c="#2563eb" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#2563eb;cursor:pointer;border:3px solid #2563eb"></div>
-        <div data-c="#16a34a" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#16a34a;cursor:pointer;border:3px solid transparent"></div>
-        <div data-c="#dc2626" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#dc2626;cursor:pointer;border:3px solid transparent"></div>
-        <div data-c="#b45309" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#b45309;cursor:pointer;border:3px solid transparent"></div>
-        <div data-c="#7c3aed" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#7c3aed;cursor:pointer;border:3px solid transparent"></div>
-        <div data-c="#0891b2" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#0891b2;cursor:pointer;border:3px solid transparent"></div>
-        <div data-c="#be185d" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#be185d;cursor:pointer;border:3px solid transparent"></div>
-        <div data-c="#475569" onclick="selectColor(this)" style="width:32px;height:32px;border-radius:8px;background:#475569;cursor:pointer;border:3px solid transparent"></div>
-      </div>
-    </div>
+
     <div style="background:var(--gold-l);border:1px solid #fcd34d;border-radius:var(--r);padding:11px 13px;font-size:12px;color:var(--gold);line-height:1.7;margin-bottom:12px">
       <b>Sync GitHub Gist (optionnel) :</b><br>
       Chaque profil peut avoir son propre token GitHub pour synchroniser ses données indépendamment.
@@ -688,7 +680,11 @@ function saveProfile(){
   if(!pin||pin.length!==4||!/^\d{4}$/.test(pin)){toast('PIN 4 chiffres requis','err');return;}
   var token=document.getElementById('pm-token').value.trim();
   var pid='p'+Date.now();
-  var profiles=getProfiles();profiles.push({id:pid,name:name,color:selectedColor});saveProfiles(profiles);
+  var profiles=getProfiles();
+  // Auto-assign color by index
+  var autoColors=['#2563eb','#16a34a','#dc2626','#b45309','#7c3aed','#0891b2','#be185d','#475569'];
+  var color=autoColors[profiles.length % autoColors.length];
+  profiles.push({id:pid,name:name,color:color});saveProfiles(profiles);
   // Store PIN as simple hash (not security-critical, just privacy)
   localStorage.setItem('pin_'+pid, btoa(pin));
   if(token)setProfileToken(pid,token);
@@ -711,6 +707,11 @@ function showPinScreen(pid){
   document.getElementById('pin-hint').textContent='Entrez votre code PIN';
   updatePinDots();
   document.getElementById('pin-screen').classList.add('show');
+  // Auto-focus for keyboard on Mac/iPad
+  setTimeout(function(){
+    var inp=document.getElementById('pin-keyboard-input');
+    if(inp){inp.value='';inp.focus();}
+  },300);
 }
 
 function pinPress(d){
@@ -723,6 +724,19 @@ function pinPress(d){
 function pinDel(){
   pinEntry=pinEntry.slice(0,-1);
   updatePinDots();
+}
+
+function focusPinInput(){
+  var inp=document.getElementById('pin-keyboard-input');
+  if(inp){inp.value='';inp.focus();}
+}
+
+function onPinKeyboardInput(inp){
+  var val=inp.value.replace(/\D/g,'');
+  inp.value=val;
+  pinEntry=val.slice(0,4);
+  updatePinDots();
+  if(pinEntry.length===4) setTimeout(function(){checkPin();inp.value='';},120);
 }
 
 function updatePinDots(){
@@ -755,6 +769,15 @@ function pinCancel(){
   renderProfileScreen();
   document.getElementById('profile-screen').classList.remove('hidden');
 }
+
+// Physical keyboard support for PIN
+document.addEventListener('keydown', function(e){
+  var pinVisible = document.getElementById('pin-screen').classList.contains('show');
+  if(!pinVisible) return;
+  if(e.key>='0'&&e.key<='9') pinPress(e.key);
+  else if(e.key==='Backspace') pinDel();
+  else if(e.key==='Escape') pinCancel();
+});
 
 function openAddProfile(){
   document.getElementById('pm-name').value='';
@@ -1041,7 +1064,7 @@ function saveGistConfig(){var t=document.getElementById('gist-token'),i=document
 function loadGistConfig(){var t=document.getElementById('gist-token'),i=document.getElementById('gist-id');if(t)t.value=profileToken(currentPid)||'';if(i)i.value=profileGistId(currentPid)||'';}
 function clearGistConfig(){['gist_token_'+currentPid,'gist_id_'+currentPid,'gist_sync_'+currentPid].forEach(function(k){localStorage.removeItem(k);});loadGistConfig();setSyncStatus('⚙️','Non configuré','Entrez votre token GitHub ci-dessous',false);toast('Configuration effacée','info');}
 function setSyncStatus(ico,title,sub,spin){var i=document.getElementById('sync-ico'),t=document.getElementById('sync-title'),s=document.getElementById('sync-sub'),sp=document.getElementById('sync-spin');if(i)i.textContent=ico;if(t)t.textContent=title;if(s)s.textContent=sub;if(sp)sp.style.display=spin?'block':'none';}
-async function gistSync(){var token=profileToken(currentPid);if(!token){toast('Entrez votre token GitHub dans Backup','err');navTo('backup');return;}if(gistSyncing)return;gistSyncing=true;setSyncStatus('🔄','Synchronisation…','GitHub Gist',true);try{var gistId=profileGistId(currentPid)||'';var payload=JSON.stringify({version:2,syncedAt:new Date().toISOString(),data:S});var headers={'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};if(gistId){try{var getR=await fetch('https://api.github.com/gists/'+gistId,{headers:headers});if(getR.ok){var gist=await getR.json();var rc=gist.files&&gist.files['commercial-pro.json']&&gist.files['commercial-pro.json'].content;if(rc){var remote=JSON.parse(rc);var remoteTime=new Date(remote.syncedAt||0).getTime();var localTime=new Date(localStorage.getItem('gist_last_sync')||0).getTime();if(remoteTime>localTime+5000){if(confirm('Version plus récente sur GitHub ('+new Date(remote.syncedAt).toLocaleString('fr-FR')+').\nCharger depuis le cloud ?')){S=remote.data;save();renderFolders();renderProspects();updateHdr();setProfileLastSync(currentPid,remote.syncedAt);setSyncStatus('✅','Données chargées','Sync: '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Données restaurées depuis GitHub','ok');gistSyncing=false;return;}}}}}catch(e){}var pR=await fetch('https://api.github.com/gists/'+gistId,{method:'PATCH',headers:headers,body:JSON.stringify({files:{'commercial-pro.json':{content:payload}}})});if(!pR.ok)throw new Error('PATCH '+pR.status);}else{var cR=await fetch('https://api.github.com/gists',{method:'POST',headers:headers,body:JSON.stringify({description:'Commercial Pro — Sauvegarde CRM',public:false,files:{'commercial-pro.json':{content:payload}}})});if(!cR.ok)throw new Error('CREATE '+cR.status);var created=await cR.json();gistId=created.id;setProfileGistId(currentPid,gistId);var inp=document.getElementById('gist-id');if(inp)inp.value=gistId;}setProfileLastSync(currentPid,new Date().toISOString());localStorage.setItem('gist_last_sync_'+currentPid,new Date().toISOString());setSyncStatus('✅','Synchronisé ✓','Dernière sync : '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Sauvegardé sur GitHub Gist','ok');}catch(e){setSyncStatus('❌','Erreur',e.message,false);toast('Sync échouée : '+e.message,'err');}gistSyncing=false;}
+async function gistSync(){var token=profileToken(currentPid);if(!token){toast('Entrez votre token GitHub dans Backup','err');navTo('backup');return;}if(gistSyncing)return;gistSyncing=true;setSyncStatus('🔄','Synchronisation…','GitHub Gist',true);try{var gistId=profileGistId(currentPid)||'';var payload=JSON.stringify({version:2,syncedAt:new Date().toISOString(),data:S});var headers={'Authorization':'token '+token,'Content-Type':'application/json','Accept':'application/vnd.github.v3+json'};if(gistId){try{var getR=await fetch('https://api.github.com/gists/'+gistId,{headers:headers});if(getR.ok){var gist=await getR.json();var rc=gist.files&&gist.files['commercial-pro.json']&&gist.files['commercial-pro.json'].content;if(rc){var remote=JSON.parse(rc);var remoteTime=new Date(remote.syncedAt||0).getTime();var localTime=new Date(localStorage.getItem('gist_last_sync')||0).getTime();if(remoteTime>localTime+5000 && S.companies && S.companies.length===0){S=remote.data;save();renderFolders();renderProspects();updateHdr();setProfileLastSync(currentPid,remote.syncedAt);setSyncStatus('✅','Données chargées','Sync: '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Données chargées depuis GitHub','ok');gistSyncing=false;return;}}}}catch(e){}var pR=await fetch('https://api.github.com/gists/'+gistId,{method:'PATCH',headers:headers,body:JSON.stringify({files:{'commercial-pro.json':{content:payload}}})});if(!pR.ok)throw new Error('PATCH '+pR.status);}else{var cR=await fetch('https://api.github.com/gists',{method:'POST',headers:headers,body:JSON.stringify({description:'Commercial Pro — Sauvegarde CRM',public:false,files:{'commercial-pro.json':{content:payload}}})});if(!cR.ok)throw new Error('CREATE '+cR.status);var created=await cR.json();gistId=created.id;setProfileGistId(currentPid,gistId);var inp=document.getElementById('gist-id');if(inp)inp.value=gistId;}setProfileLastSync(currentPid,new Date().toISOString());localStorage.setItem('gist_last_sync_'+currentPid,new Date().toISOString());setSyncStatus('✅','Synchronisé ✓','Dernière sync : '+new Date().toLocaleTimeString('fr-FR'),false);toast('✓ Sauvegardé sur GitHub Gist','ok');}catch(e){setSyncStatus('❌','Erreur',e.message,false);toast('Sync échouée : '+e.message,'err');}gistSyncing=false;}
 setInterval(function(){if(profileToken(currentPid)&&!gistSyncing&&document.visibilityState!=='hidden')gistSync();},5*60*1000);
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'&&profileToken(currentPid))setTimeout(gistSync,1000);});
 
