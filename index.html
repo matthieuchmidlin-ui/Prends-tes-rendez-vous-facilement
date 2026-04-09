@@ -135,7 +135,7 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
 .note-call{background:var(--bg);border:1px solid var(--border);color:var(--ink2)}
 .drop-zone{border:2px dashed var(--border);border-radius:var(--r2);padding:36px 20px;text-align:center;cursor:pointer;background:var(--white);transition:all .2s}
 .drop-zone.drag,.drop-zone:active{border-color:var(--acc);background:var(--acc-l)}
-.overlay{display:none;position:fixed;inset:0;z-index:1000;background:rgba(26,25,22,.45);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;padding-bottom:var(--sab)}
+.overlay{display:none;position:fixed;inset:0;z-index:3000;background:rgba(26,25,22,.45);backdrop-filter:blur(6px);align-items:flex-end;justify-content:center;padding-bottom:var(--sab)}
 .overlay.open{display:flex}
 .modal{background:var(--white);border-radius:var(--r2) var(--r2) 0 0;width:100%;max-width:600px;max-height:92vh;overflow-y:auto;-webkit-overflow-scrolling:touch;animation:su .25s ease;padding-bottom:var(--sab)}
 .modal::before{content:'';display:block;width:36px;height:4px;background:var(--border);border-radius:2px;margin:10px auto 4px}
@@ -213,7 +213,7 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
 .tab-item.active{color:var(--acc)}
 .tab-ico{font-size:19px;line-height:1.2}
 .tab-lbl{font-size:8px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:center;padding:0 2px}
-.toast-wrap{position:fixed;bottom:calc(76px + var(--sab));right:16px;display:flex;flex-direction:column;gap:8px;z-index:1000}
+.toast-wrap{position:fixed;bottom:calc(76px + var(--sab));right:16px;display:flex;flex-direction:column;gap:8px;z-index:4000}
 .toast{background:var(--white);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-size:13px;max-width:300px;animation:tin .3s ease;display:flex;align-items:center;gap:8px}
 .toast.ok{border-color:#86efac;background:var(--green-l);color:var(--green)}
 .toast.err{border-color:#fca5a5;background:var(--red-l);color:var(--red)}
