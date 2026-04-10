@@ -333,6 +333,7 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
     <div class="ni" data-view="calls" onclick="nav(this)"><span class="ico">📞</span>Appels<span class="nbadge" id="nb-c">0</span></div>
     <div class="ni" data-view="rdv" onclick="nav(this)"><span class="ico">📅</span>Rendez-vous</div>
     <div class="ni" data-view="import" onclick="nav(this)"><span class="ico">📂</span>Importer CSV</div>
+    <div class="ni" onclick="navTo('prospects');setTimeout(startBgSearch,200)" style="color:#7c3aed"><span class="ico">✦</span>Chercher gérants</div>
     <div class="nsep"></div>
     <div class="nsec">Outils</div>
     <div class="ni" data-view="stats" onclick="nav(this)"><span class="ico">📊</span>Statistiques</div>
@@ -365,6 +366,7 @@ select.fsel{background:var(--white);border:1px solid var(--border);border-radius
         <div><div class="ph-title" id="fold-title">Prospects</div><div class="ph-sub" id="fold-sub">—</div></div>
         <div class="ph-actions">
           <button class="btn bp bsm" style="background:var(--green)" onclick="navTo('import')">📂 CSV</button>
+          <button class="btn bp bsm" style="background:#7c3aed" onclick="startBgSearch()" id="btn-bg-search" title="Rechercher les gérants en arrière-plan">✦ Gérants</button>
           <button class="btn bp bsm" onclick="openAddCo(null)">+ Ajouter</button>
         </div>
       </div>
